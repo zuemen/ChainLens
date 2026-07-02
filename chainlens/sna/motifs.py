@@ -142,6 +142,45 @@ def detect_peeling_chain(
     ]
 
 
+def detect_gather_scatter(
+    g: nx.DiGraph, min_degree: int = 5, window_seconds: float | None = None
+) -> list[MotifHit]:
+    """集散圖樣（gather-scatter / smurfing）：同一節點先自 ≥min_degree 個來源集資，
+    再拆分至 ≥min_degree 個目標——AML typology 文獻中 layering 的典型結構。
+
+    有 timestamp 時另要求「最早流入不晚於最後流出」的時間順序。
+    """
+    hits: list[MotifHit] = []
+    for node in g.nodes():
+        in_events = [(d.get("timestamp"), u) for u, _, d in g.in_edges(node, data=True)]
+        out_events = [(d.get("timestamp"), v) for _, v, d in g.out_edges(node, data=True)]
+        if len({p for _, p in in_events}) < min_degree:
+            continue
+        if len({p for _, p in out_events}) < min_degree:
+            continue
+        in_count = _max_distinct_in_window(in_events, window_seconds)
+        out_count = _max_distinct_in_window(out_events, window_seconds)
+        if in_count < min_degree or out_count < min_degree:
+            continue
+        in_ts = [ts for ts, _ in in_events if ts is not None]
+        out_ts = [ts for ts, _ in out_events if ts is not None]
+        if in_ts and out_ts and min(in_ts) > max(out_ts):
+            continue  # 全部流出都早於任何流入，不構成先集資後分散
+        peers = sorted({p for _, p in in_events} | {p for _, p in out_events}, key=str)
+        hits.append(
+            MotifHit(
+                motif="gather_scatter",
+                center=node,
+                nodes=[node, *peers],
+                description_zh=(
+                    f"節點 {node} 先自 {in_count} 個來源集中資金、再拆分至 "
+                    f"{out_count} 個地址，符合集散（gather-scatter/smurfing）圖樣。"
+                ),
+            )
+        )
+    return hits
+
+
 def detect_all(
     g: nx.DiGraph,
     min_degree: int = 5,
@@ -149,9 +188,10 @@ def detect_all(
     min_hops: int = 3,
     keep_ratio: float = 0.8,
 ) -> list[MotifHit]:
-    """一次執行三種圖樣偵測。"""
+    """一次執行全部圖樣偵測。"""
     return [
         *detect_fan_in(g, min_degree, window_seconds),
         *detect_fan_out(g, min_degree, window_seconds),
+        *detect_gather_scatter(g, min_degree, window_seconds),
         *detect_peeling_chain(g, min_hops, keep_ratio),
     ]

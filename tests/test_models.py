@@ -7,7 +7,7 @@ import pytest
 from chainlens.models import train
 
 
-@pytest.mark.parametrize("model_type", ["gcn", "sage"])
+@pytest.mark.parametrize("model_type", ["gcn", "sage", "sage-rmp"])
 def test_train_and_evaluate(model_type: str, tmp_path: Path) -> None:
     data = train.build_synthetic_data(num_nodes=60, num_features=16, seed=1)
     metrics = train.train_and_evaluate(
@@ -16,6 +16,25 @@ def test_train_and_evaluate(model_type: str, tmp_path: Path) -> None:
     assert set(metrics) == set(train.METRIC_KEYS)
     assert all(0.0 <= v <= 1.0 for v in metrics.values())
     assert (tmp_path / f"{model_type}.pt").exists()
+
+
+def test_random_forest_baseline(tmp_path: Path) -> None:
+    data = train.build_synthetic_data(num_nodes=60, num_features=16, seed=1)
+    metrics = train.train_and_evaluate(data, model_type="rf", checkpoint_dir=tmp_path)
+    assert set(metrics) == set(train.METRIC_KEYS)
+    assert all(0.0 <= v <= 1.0 for v in metrics.values())
+    assert (tmp_path / "rf.joblib").exists()
+
+
+def test_focal_loss_training(tmp_path: Path) -> None:
+    data = train.build_synthetic_data(num_nodes=60, num_features=16, seed=1)
+    metrics = train.train_and_evaluate(
+        data, model_type="sage", epochs=5, hidden_dim=8, checkpoint_dir=tmp_path,
+        loss="focal",
+    )
+    assert set(metrics) == set(train.METRIC_KEYS)
+    with pytest.raises(ValueError):
+        train.train_and_evaluate(data, model_type="sage", epochs=1, loss="nope")
 
 
 def test_synthetic_masks_disjoint() -> None:

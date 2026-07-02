@@ -40,6 +40,34 @@ def test_fan_in_without_timestamps() -> None:
     assert [h.center for h in hits] == ["c"]
 
 
+def test_gather_scatter() -> None:
+    g = nx.DiGraph()
+    t0 = 1_700_000_000
+    for i in range(6):
+        g.add_edge(f"in{i}", "mixer", amount=50.0, timestamp=t0 + i * 30)
+    for i in range(6):
+        g.add_edge("mixer", f"out{i}", amount=48.0, timestamp=t0 + 300 + i * 30)
+    hits = motifs.detect_gather_scatter(g, min_degree=5, window_seconds=3600)
+    assert [h.center for h in hits] == ["mixer"]
+    assert "集散" in hits[0].description_zh
+
+
+def test_gather_scatter_requires_both_sides(scam_graph: nx.DiGraph) -> None:
+    # collector 只有集資（out=1）、hub 只有分散（in=1），皆不構成集散
+    hits = motifs.detect_gather_scatter(scam_graph, min_degree=5, window_seconds=3600)
+    assert hits == []
+
+
+def test_gather_scatter_rejects_scatter_before_gather() -> None:
+    g = nx.DiGraph()
+    t0 = 1_700_000_000
+    for i in range(6):
+        g.add_edge("hub", f"out{i}", timestamp=t0 + i * 10)  # 先全部流出
+    for i in range(6):
+        g.add_edge(f"in{i}", "hub", timestamp=t0 + 10_000 + i * 10)  # 才有流入
+    assert motifs.detect_gather_scatter(g, min_degree=5, window_seconds=None) == []
+
+
 def test_slow_fan_in_excluded_by_window() -> None:
     g = nx.DiGraph()
     for i in range(6):
