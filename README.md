@@ -61,9 +61,25 @@ make download-data
 
 | 模型 | 特徵 | Precision | Recall | F1 | PR-AUC |
 |---|---|---|---|---|---|
-| GCN | 原始 165 維 | 待資料下載後執行 `make train` 產生 | | | |
-| GraphSAGE | 原始 165 維 | 待資料下載後執行 `make train` 產生 | | | |
-| GraphSAGE | 原始 + SNA 特徵（消融） | 待資料下載後執行 `make train --use-sna` 產生 | | | |
+| GCN | 原始 165 維 | 0.440 | 0.531 | 0.481 | 0.499 |
+| GraphSAGE | 原始 165 維 | **0.583** | **0.662** | **0.620** | **0.662** |
+| GraphSAGE | 原始 + SNA 特徵（消融） | 0.558 | 0.657 | 0.604 | 0.657 |
+
+> 訓練設定：CPU、200 epochs、hidden 64、lr 0.01、加權 CrossEntropy（逆類別頻率）、weight decay 5e-4；SNA 特徵＝in/out degree、PageRank、k-core、近似 betweenness（64 源點）z-score。
+
+> 消融觀察：串接 SNA 特徵未提升 F1（0.604 vs 0.620）——GNN 的訊息傳遞已隱含學到局部結構。SNA 在本系統的價值在**可解釋層**：風險證據面板以中心性百分位、社群風險佔比與圖樣命中產生人讀得懂的調查敘事（見下方截圖），此為純 GNN 分數無法提供的。
+
+## Demo 截圖
+
+內建範例圖（含集資扇入、快速分散、剝洋蔥鏈三種圖樣）：
+
+![workbench example](docs/images/workbench_example.png)
+
+真實 TRON 地址 2-hop USDT 金流圖（795 節點，TronGrid 即時抓取）與 SNA 指標表：
+
+![workbench real graph](docs/images/workbench_real_graph.png)
+
+![workbench real sna table](docs/images/workbench_real_sna_table.png)
 
 ## API 範例
 
