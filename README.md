@@ -61,11 +61,15 @@ make download-data
 
 | 模型 | 特徵 | Precision | Recall | F1 | PR-AUC |
 |---|---|---|---|---|---|
-| GCN | 原始 165 維 | 0.440 | 0.531 | 0.481 | 0.499 |
-| GraphSAGE | 原始 165 維 | **0.583** | **0.662** | **0.620** | **0.662** |
-| GraphSAGE | 原始 + SNA 特徵（消融） | 0.558 | 0.657 | 0.604 | 0.657 |
+| GCN | 原始 165 維 | 0.480 | 0.535 | 0.506 | 0.524 |
+| GraphSAGE | 原始 165 維 | 0.581 | 0.666 | 0.620 | 0.671 |
+| GraphSAGE | 原始 + SNA 特徵（消融） | 0.552 | 0.660 | 0.601 | 0.648 |
+| GraphSAGE + RMP | 原始 165 維 | 0.707 | 0.621 | **0.661** | **0.692** |
+| Random Forest | 原始 165 維 | **0.907** | **0.725** | **0.806** | **0.795** |
 
-> 訓練設定：CPU、200 epochs、hidden 64、lr 0.01、加權 CrossEntropy（逆類別頻率）、weight decay 5e-4；SNA 特徵＝in/out degree、PageRank、k-core、近似 betweenness（64 源點）z-score。
+> 訓練設定：CPU、200 epochs、hidden 64、lr 0.01、加權 CrossEntropy（逆類別頻率）、weight decay 5e-4、seed 42；SNA 特徵＝in/out degree、PageRank、k-core、近似 betweenness（64 源點）z-score。五列為同一次完整資料集實測（2026-07-03）。
+
+> 與文獻一致的兩個結論：**Random Forest 仍是最強基線**（重現 Weber et al. 2019 的 RF≈0.79–0.83），且 **reverse message passing（AAAI 2024 Multi-GNN）讓 GraphSAGE F1 +4.1pp**（0.620→0.661）——有向交易圖的入邊/出邊訊號確實互補。詳見 [docs/RESEARCH.md](docs/RESEARCH.md)。
 
 > 消融觀察：串接 SNA 特徵未提升 F1（0.604 vs 0.620）——GNN 的訊息傳遞已隱含學到局部結構。SNA 在本系統的價值在**可解釋層**：風險證據面板以中心性百分位、社群風險佔比與圖樣命中產生人讀得懂的調查敘事（見下方截圖），此為純 GNN 分數無法提供的。
 

@@ -13,7 +13,12 @@
 | Skip-GCN | Weber et al. 2019 | 0.705 |
 | vanilla GCN | Weber et al. 2019 | 0.628 |
 | Inspection-L（DGI+GIN 自監督 + RF head） | Lo et al. 2022/23 | ~0.828 |
-| **ChainLens GraphSAGE（原始 165 維）** | 本專案 | **0.620** |
+| **ChainLens Random Forest** | 本專案（2026-07-03 實測） | **0.806** |
+| **ChainLens GraphSAGE + RMP** | 本專案（2026-07-03 實測） | **0.661** |
+| **ChainLens GraphSAGE（原始 165 維）** | 本專案 | 0.620 |
+
+本專案實測驗證了兩個文獻預期：RF 基線重現 Weber 的 0.788（我們 0.806）；
+reverse message passing 讓 GraphSAGE +4.1pp（0.620→0.661，precision 0.581→0.707）。
 
 文獻共識：**先打敗 Random Forest 再談花俏模型**——RF 在工程特徵上勝過 vanilla GCN，
 因此本專案已加入 `--model rf` 基線；skip 連接（保留節點自身特徵）是 Skip-GCN > GCN 的關鍵，
