@@ -69,6 +69,21 @@ make download-data
 
 > 消融觀察：串接 SNA 特徵未提升 F1（0.604 vs 0.620）——GNN 的訊息傳遞已隱含學到局部結構。SNA 在本系統的價值在**可解釋層**：風險證據面板以中心性百分位、社群風險佔比與圖樣命中產生人讀得懂的調查敘事（見下方截圖），此為純 GNN 分數無法提供的。
 
+其他可用訓練選項（研究驅動，見 [docs/RESEARCH.md](docs/RESEARCH.md)）：
+
+```bash
+uv run python -m chainlens.models.train --model rf          # Random Forest 基線（Weber 2019 最強基線 F1≈0.788）
+uv run python -m chainlens.models.train --model sage-rmp    # GraphSAGE + reverse message passing（AAAI 2024 Multi-GNN）
+uv run python -m chainlens.models.train --model sage --loss focal   # Focal Loss 處理極度不平衡
+```
+
+## 研究基礎與 Roadmap
+
+本專案的設計選擇與改進方向根據對 14 個主流研究方向的深度調查（Elliptic/Elliptic2 基準、
+IBM Multi-GNN、時序 GNN、洗錢 typology、異質性 GNN、GNN 可解釋性、LLM+圖、TRON/USDT 實證、
+商用系統、聯邦/隱私 AML 等），完整定位、五大領域痛點對應表與 Roadmap 見
+**[docs/RESEARCH.md](docs/RESEARCH.md)**；逐項結構化調查結果在 `research/`。
+
 ## Demo 截圖
 
 內建範例圖（含集資扇入、快速分散、剝洋蔥鏈三種圖樣）：
@@ -103,6 +118,7 @@ curl -X POST http://localhost:8000/score \
 |---|---|
 | 集資扇入 fan-in | 短時間窗內 ≥N 個來源匯入同一節點 |
 | 快速分散 fan-out | 單節點快速拆分至 ≥N 個新地址 |
+| 集散 gather-scatter | 同一節點先集資後分散（smurfing/layering 典型結構，含時間順序檢查） |
 | 剝洋蔥鏈 peeling chain | 連續 ≥K 跳、每跳保留大額轉出＋小額剝離 |
 
 ## 專案結構
