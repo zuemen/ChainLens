@@ -146,7 +146,7 @@ chainlens/
 
 ### Vercel（FastAPI 風險評分 API，最省事）
 
-API 執行路徑不依賴 torch（僅 `train.py` 需要，已改延遲載入），故可塞進 serverless。專案含 `api/index.py`（ASGI 進入點）、`vercel.json`（路由 + 記憶體/timeout）與**輕量** `requirements.txt`（不含 torch/streamlit，約 180MB，符合 250MB 上限）。
+API 執行路徑不依賴 torch（僅 `train.py` 需要，已改延遲載入），故可塞進 serverless。FastAPI app 進入點為 `chainlens/api/main.py`（由 `pyproject.toml` 的 `[tool.vercel] entrypoint` 指向），`vercel.json` 設定該檔的記憶體/timeout，並附**輕量** `requirements.txt`（不含 torch/streamlit，約 180MB，符合 250MB 上限）。
 
 ```bash
 npm i -g vercel        # 若未安裝

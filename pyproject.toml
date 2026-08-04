@@ -35,6 +35,9 @@ select = ["E", "F", "I", "W", "UP"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+[tool.vercel]
+entrypoint = "chainlens.api.main:app"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
