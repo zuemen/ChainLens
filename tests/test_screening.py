@@ -66,7 +66,6 @@ def test_screen_blocks_suspicious_and_passes_normal():
     ok = screen_withdrawal(g, NORMAL_TARGET, 500_000)
     assert bad["decision"] == "block"
     assert bad["risk_score"] >= 0.7
-    assert "二階" not in bad["narrative_zh"] or True  # 敘事存在即可
     assert "2 階資金關聯" in bad["narrative_zh"]
     assert ok["decision"] == "pass"
     assert ok["str_draft_zh"] is None
@@ -82,6 +81,27 @@ def test_str_draft_contains_evidence_chain():
     assert "T-002" in draft
     assert "500,000 USDT" in draft
     assert "TAggregator01" in draft  # 證據鏈需點名風險節點
+
+
+def test_screening_target_not_in_graph_returns_insufficient_data():
+    """全新地址（鏈上無紀錄）是最常見的正常出金：不得拋錯，應回資料不足並放行。"""
+    g = load_withdrawal_scenario()
+    result = screen_withdrawal(g, "TBrandNewAddress9999", 10_000)
+    assert result["decision"] == "pass"
+    assert result["insufficient_data"] is True
+    assert result["risk_score"] == 0.0
+    assert result["str_draft_zh"] is None
+    assert "查無交易紀錄" in result["narrative_zh"]
+
+
+def test_victims_not_blocked_by_motif_membership():
+    """被害人（fan-in 來源）不得因出現在圖樣 nodes 而被連坐攔阻。"""
+    g = load_withdrawal_scenario()
+    victims = [n for n, d in g.nodes(data=True) if d.get("role") == "victim"]
+    assert victims
+    for victim in victims[:3]:
+        result = screen_withdrawal(g, victim, 5_000)
+        assert result["evidence"]["motif_hits"] == []  # 非圖樣中心，不計圖樣分
 
 
 def test_screening_on_graph_without_motifs_passes():

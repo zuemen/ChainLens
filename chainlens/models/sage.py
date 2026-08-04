@@ -1,6 +1,6 @@
 """GraphSAGE 主模型：兩層 SAGEConv 節點分類器。
 
-輸入可為原始 166 維特徵，或串接 SNA 特徵後的擴充向量（消融比較用）。
+輸入可為原始 165 維特徵，或串接 SNA 特徵後的擴充向量（消融比較用）。
 
 reverse_mp=True 時啟用 reverse message passing（Egressy et al., AAAI 2024
 "Provably Powerful GNNs for Directed Multigraphs"）：對正向與反向邊各做一次

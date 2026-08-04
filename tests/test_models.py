@@ -37,6 +37,25 @@ def test_focal_loss_training(tmp_path: Path) -> None:
         train.train_and_evaluate(data, model_type="sage", epochs=1, loss="nope")
 
 
+def test_focal_loss_formula() -> None:
+    """pt 須由無權重 CE 還原（真實機率），α 權重於調變因子外另乘。"""
+    import torch
+
+    logits = torch.tensor([[2.0, -1.0], [0.5, 1.5], [-1.0, 3.0]])
+    targets = torch.tensor([0, 1, 1])
+    weight = torch.tensor([1.0, 5.0])
+    gamma = 2.0
+
+    ce_raw = torch.nn.functional.cross_entropy(logits, targets, reduction="none")
+    pt = torch.exp(-ce_raw)  # = softmax(logits)[target]，真實機率
+    expected = (weight[targets] * (1.0 - pt) ** gamma * ce_raw).mean()
+    actual = train._focal_loss(logits, targets, weight, gamma=gamma)
+    assert torch.allclose(actual, expected)
+    # 易分類樣本（pt 高）須被大幅降權：focal 遠小於加權 CE
+    weighted_ce = torch.nn.functional.cross_entropy(logits, targets, weight=weight)
+    assert actual < weighted_ce
+
+
 def test_synthetic_masks_disjoint() -> None:
     data = train.build_synthetic_data(num_nodes=40, num_features=8, seed=2)
     assert not (data.train_mask & data.test_mask).any()

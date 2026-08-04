@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,18 @@ USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"  # TRON 主網 USDT
 BASE_URL = "https://api.trongrid.io/v1/accounts/{address}/transactions/trc20"
 ANON_DELAY_SECONDS = 0.5  # 無 API key 時的匿名限速延遲
 DEFAULT_CACHE_DIR = Path("data/cache")
+DEFAULT_CACHE_TTL_SECONDS = 24 * 3600  # 鏈上金流持續變動，快取一天後過期重抓
+CACHE_FORMAT_VERSION = 2  # v2 起帶 tx_id 以去重；舊格式快取一律視為失效
+
+# TRON 主網地址：T 開頭 Base58（34 字元）
+TRON_ADDRESS_RE = re.compile(r"^T[1-9A-HJ-NP-Za-km-z]{33}$")
+# 快取檔名/URL 安全字元：僅允許英數，杜絕路徑穿越與 URL 注入
+_SAFE_ADDRESS_RE = re.compile(r"^[A-Za-z0-9]+$")
+
+
+def is_valid_tron_address(address: str) -> bool:
+    """是否為合法 TRON 主網地址格式。"""
+    return bool(TRON_ADDRESS_RE.match(address))
 
 
 def _parse_transfers(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -30,6 +43,7 @@ def _parse_transfers(payload: dict[str, Any]) -> list[dict[str, Any]]:
             decimals = int(token.get("decimals", 6))
             transfers.append(
                 {
+                    "tx_id": item.get("transaction_id"),  # 供跨地址抓取去重
                     "from": item["from"],
                     "to": item["to"],
                     "amount": int(item["value"]) / 10**decimals,
@@ -39,6 +53,22 @@ def _parse_transfers(payload: dict[str, Any]) -> list[dict[str, Any]]:
         except (KeyError, TypeError, ValueError):
             continue  # 略過缺欄位或格式錯誤的紀錄
     return transfers
+
+
+def _dedupe_transfers(transfers: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """去除跨地址抓取的重複轉帳（center↔neighbor 的同一筆會出現在兩邊的回應）。
+
+    有 tx_id 用 tx_id；缺 tx_id 時退回 (from, to, amount, timestamp) 四元組。
+    """
+    seen: set[Any] = set()
+    unique: list[dict[str, Any]] = []
+    for t in transfers:
+        key = t.get("tx_id") or (t["from"], t["to"], t["amount"], t["timestamp"])
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(t)
+    return unique
 
 
 def _fetch_transfers(
@@ -72,17 +102,38 @@ def build_graph_from_transfers(transfers: list[dict[str, Any]]) -> nx.DiGraph:
     return g
 
 
+def _read_cache(cache_file: Path, ttl_seconds: float) -> list[dict[str, Any]] | None:
+    """讀取快取；過期、舊格式（無版本標記）或損毀時回 None 觸發重抓。"""
+    if not cache_file.exists():
+        return None
+    if time.time() - cache_file.stat().st_mtime > ttl_seconds:
+        return None
+    try:
+        payload = json.loads(cache_file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict) or payload.get("version") != CACHE_FORMAT_VERSION:
+        return None  # v1 舊快取帶有重複轉帳（金額灌水），一律失效
+    return payload.get("transfers", [])
+
+
 def fetch_two_hop_graph(
     address: str,
     api_key: str | None = None,
     cache_dir: Path | None = DEFAULT_CACHE_DIR,
     max_neighbors: int = 8,
+    cache_ttl_seconds: float = DEFAULT_CACHE_TTL_SECONDS,
 ) -> nx.DiGraph:
-    """以 address 為中心抓取 2-hop USDT 金流圖（對手方最多 max_neighbors 個）。"""
+    """以 address 為中心抓取 2-hop USDT 金流圖（對手方最多 max_neighbors 個）。
+
+    address 僅允許英數字元（快取檔名與 URL 皆直接使用，防路徑穿越/注入）；
+    API/前端入口應另以 is_valid_tron_address 做完整格式驗證。
+    """
+    if not _SAFE_ADDRESS_RE.match(address):
+        raise ValueError(f"地址含非法字元：{address!r}")
     cache_file = cache_dir / f"{address}_2hop.json" if cache_dir else None
-    if cache_file and cache_file.exists():
-        transfers = json.loads(cache_file.read_text(encoding="utf-8"))
-    else:
+    transfers = _read_cache(cache_file, cache_ttl_seconds) if cache_file else None
+    if transfers is None:
         with httpx.Client() as client:
             transfers = _fetch_transfers(address, api_key, client)
             neighbors: list[str] = []
@@ -92,9 +143,16 @@ def fetch_two_hop_graph(
                     neighbors.append(peer)
             for peer in neighbors[:max_neighbors]:
                 transfers.extend(_fetch_transfers(peer, api_key, client))
+        transfers = _dedupe_transfers(transfers)
         if cache_file:
             cache_file.parent.mkdir(parents=True, exist_ok=True)
-            cache_file.write_text(json.dumps(transfers, ensure_ascii=False), encoding="utf-8")
+            cache_file.write_text(
+                json.dumps(
+                    {"version": CACHE_FORMAT_VERSION, "transfers": transfers},
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
     g = build_graph_from_transfers(transfers)
     g.graph["center"] = address
     return g

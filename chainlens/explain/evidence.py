@@ -50,13 +50,17 @@ def generate_evidence(
     if node not in sna_df.index:
         raise KeyError(f"節點 {node} 不在圖中")
 
+    # 嚴格小於：平手值不灌水（真實圖多數節點 betweenness=0/degree=1，
+    # 若用 <=，這批節點會被算進第 85+ 百分位並產生「結構顯著異常」的錯誤敘事）
     percentiles = {
-        col: float((sna_df[col] <= sna_df.at[node, col]).mean() * 100)
+        col: float((sna_df[col] < sna_df.at[node, col]).mean() * 100)
         for col in sna_df.columns
     }
     comm = partition.get(node, -1)
     risk_ratio = float(risk_ratios.get(comm, 0.0))
-    node_hits = [h for h in motif_hits if h.center == node or node in h.nodes]
+    # 只計中心節點：fan-in 的 nodes 含所有來源地址（即被害人），
+    # 周邊成員若同權計分，打款給詐騙地址的被害人會被連坐升級為中風險
+    node_hits = [h for h in motif_hits if h.center == node]
 
     centrality_mean = sum(percentiles.values()) / len(percentiles) / 100
     rule_score = 0.5 * (1.0 if node_hits else 0.0) + 0.3 * centrality_mean + 0.2 * risk_ratio

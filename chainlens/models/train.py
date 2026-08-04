@@ -62,12 +62,16 @@ def _focal_loss(
     class_weight: torch.Tensor,
     gamma: float = 2.0,
 ) -> torch.Tensor:
-    """Focal Loss：以 (1-p_t)^gamma 降低易分類樣本權重，聚焦少數且難分的 illicit 類。"""
-    ce = torch.nn.functional.cross_entropy(
-        logits, targets, weight=class_weight, reduction="none"
-    )
-    pt = torch.exp(-ce)
-    return ((1.0 - pt) ** gamma * ce).mean()
+    """Focal Loss：以 (1-p_t)^gamma 降低易分類樣本權重，聚焦少數且難分的 illicit 類。
+
+    注意：p_t 必須由「無權重」CE 還原（exp(-ce) = p_t）；若 ce 已含 class_weight，
+    還原出的是 p_t^w，逆頻率權重下易分類的少數類樣本幾乎不會被降權，
+    focal 的聚焦機制對少數類即失效。α 權重（class_weight）於調變因子之外另乘。
+    """
+    ce_raw = torch.nn.functional.cross_entropy(logits, targets, reduction="none")
+    pt = torch.exp(-ce_raw)
+    alpha = class_weight[targets]
+    return (alpha * (1.0 - pt) ** gamma * ce_raw).mean()
 
 
 def _evaluate_predictions(

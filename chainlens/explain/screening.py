@@ -176,7 +176,29 @@ def screen_withdrawal(
 
     combined = 1 − (1 − 自身結構分數) × (1 − 關聯分數)：
     兩訊號互補——自身乾淨但上游髒（本劇本主角）或自身即為樞紐，皆可攔截。
+
+    target 不在圖中（全新地址、鏈上無交易紀錄——最常見的正常出金）時，
+    回傳 insufficient_data 的放行結果而非拋錯。
     """
+    if target not in g:
+        return {
+            "target": str(target),
+            "amount_usdt": amount_usdt,
+            "risk_score": 0.0,
+            "self_score": 0.0,
+            "association_score": 0.0,
+            "decision": "pass",
+            "decision_zh": _DECISION_ZH["pass"],
+            "insufficient_data": True,
+            "narrative_zh": (
+                f"出金目標地址 {target}（申請金額 {amount_usdt:,.0f} USDT）"
+                "鏈上查無交易紀錄（全新地址或無 USDT 歷史），無結構證據可供評估，"
+                f"建議{_DECISION_ZH['pass']}；如有其他風險情資請併同人工判斷。"
+            ),
+            "associations": [],
+            "evidence": None,
+            "str_draft_zh": None,
+        }
     sna_df, partition, risk_ratios, motif_hits = run_pipeline(g)
     evidence = generate_evidence(target, g, sna_df, partition, risk_ratios, motif_hits)
     associations = find_risky_associations(g, target, motif_hits, max_hops=max_hops)

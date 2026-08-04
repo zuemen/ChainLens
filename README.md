@@ -22,8 +22,10 @@ flowchart LR
     end
     subgraph 解釋與服務層
         D & E & F & G --> H[風險證據產生器<br/>結構證據 + 中文調查敘事]
+        H --> K[出金審查引擎<br/>關聯追溯 + 風險融合 + STR 草稿]
         H --> I[FastAPI POST /score]
-        H --> J[Streamlit 工作台<br/>PyVis 互動圖譜]
+        H --> J[Streamlit 工作台<br/>出金審查 Demo + PyVis 互動圖譜]
+        K --> J
     end
 ```
 
@@ -70,7 +72,7 @@ make download-data
 
 > 與文獻一致的兩個結論：**Random Forest 仍是最強基線**（重現 Weber et al. 2019 的 RF≈0.79–0.83），且 **reverse message passing（AAAI 2024 Multi-GNN）讓 GraphSAGE F1 +4.1pp**（0.620→0.661）——有向交易圖的入邊/出邊訊號確實互補。詳見 [docs/RESEARCH.md](docs/RESEARCH.md)。
 
-> 消融觀察：串接 SNA 特徵未提升 F1（0.604 vs 0.620）——GNN 的訊息傳遞已隱含學到局部結構。SNA 在本系統的價值在**可解釋層**：風險證據面板以中心性百分位、社群風險佔比與圖樣命中產生人讀得懂的調查敘事（見下方截圖），此為純 GNN 分數無法提供的。
+> 消融觀察：串接 SNA 特徵未提升 F1（0.601 vs 0.620）——GNN 的訊息傳遞已隱含學到局部結構。SNA 在本系統的價值在**可解釋層**：風險證據面板以中心性百分位、社群風險佔比與圖樣命中產生人讀得懂的調查敘事（見下方截圖），此為純 GNN 分數無法提供的。
 
 其他可用訓練選項（研究驅動，見 [docs/RESEARCH.md](docs/RESEARCH.md)）：
 
@@ -88,6 +90,8 @@ IBM Multi-GNN、時序 GNN、洗錢 typology、異質性 GNN、GNN 可解釋性�
 **[docs/RESEARCH.md](docs/RESEARCH.md)**；逐項結構化調查結果在 `research/`。
 
 ## Demo 截圖
+
+Streamlit 工作台含兩種模式：**出金審查 Demo**（50 萬 USDT 攔阻情境：決策卡 → 關聯路徑高亮圖譜 → STR 草稿下載，展演口白見 [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)）與**金流圖譜工作台**（自由探索）。
 
 內建範例圖（含集資扇入、快速分散、剝洋蔥鏈三種圖樣）：
 
@@ -128,12 +132,14 @@ curl -X POST http://localhost:8000/score \
 
 ```
 chainlens/
-├── data/        # elliptic.py（CSV→PyG/NetworkX）、tron.py（TronGrid 2-hop 抓取）
+├── data/        # elliptic.py（CSV→PyG/NetworkX）、tron.py（TronGrid 2-hop 抓取）、
+│                # scenario.py（50 萬 USDT 出金攔阻劇本圖）
 ├── sna/         # metrics.py、community.py（Louvain）、motifs.py（圖樣規則）
 ├── models/      # gcn.py、sage.py、train.py（時間切分訓練 + SNA 消融）
-├── explain/     # evidence.py（結構證據 + 中文敘事）
+├── explain/     # evidence.py（結構證據 + 中文敘事）、
+│                # screening.py（出金審查：關聯追溯 + 風險融合 + STR 草稿）
 ├── api/         # main.py（FastAPI /score）
-└── app/         # workbench.py（Streamlit + PyVis）
+└── app/         # workbench.py（Streamlit 雙模式：出金審查 Demo + 金流圖譜工作台）
 ```
 
 ## 開發

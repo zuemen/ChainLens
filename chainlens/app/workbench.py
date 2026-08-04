@@ -16,11 +16,14 @@ from typing import Any
 import networkx as nx
 import streamlit as st
 import streamlit.components.v1 as components
+from dotenv import load_dotenv
 from pyvis.network import Network
 
 from chainlens.data import scenario, tron
 from chainlens.explain.evidence import generate_evidence, run_pipeline
 from chainlens.explain.screening import screen_withdrawal
+
+load_dotenv()  # 讀取 .env（TRONGRID_API_KEY）
 
 HIGH_RISK_THRESHOLD = 0.7
 ROLE_COLOR = {
@@ -172,7 +175,12 @@ def render_workbench() -> None:
     address = st.text_input("TRON 地址（TRC-20 USDT）", placeholder="T 開頭主網地址…")
     use_example = st.checkbox("使用內建範例圖（離線 Demo）", value=not address)
 
-    g, degraded = load_graph(address.strip(), use_example)
+    address = address.strip()
+    if address and not use_example and not tron.is_valid_tron_address(address):
+        st.error("地址格式不正確：需為 T 開頭的 Base58 主網地址（34 字元）。")
+        return
+
+    g, degraded = load_graph(address, use_example)
     if degraded:
         st.warning("TronGrid 抓取失敗（無網路或限速），已改用內建範例圖。")
 

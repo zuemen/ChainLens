@@ -46,3 +46,38 @@ def test_elliptic_mode_without_dataset(
     monkeypatch.setattr(api_main, "RAW_DIR", tmp_path / "empty")
     response = client.post("/score", json={"tx_id": "123", "mode": "elliptic"})
     assert response.status_code == 404  # 無資料集時應回 404 與說明
+
+
+def test_tron_mode_rejects_invalid_address() -> None:
+    response = client.post("/score", json={"address": "../../etc", "mode": "tron"})
+    assert response.status_code == 400
+    response = client.post("/score", json={"address": "TTooShort", "mode": "tron"})
+    assert response.status_code == 400
+
+
+def test_tron_fetch_failure_returns_502_not_example_graph(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """TronGrid 失敗必須回 502，不得靜默回傳內建範例圖的假高風險分數。"""
+    import httpx
+
+    from chainlens.api import main as api_main
+
+    def boom(*args: object, **kwargs: object) -> None:
+        raise httpx.ConnectError("network down")
+
+    monkeypatch.setattr(api_main.tron, "fetch_two_hop_graph", boom)
+    response = client.post(
+        "/score",
+        json={"address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", "mode": "tron"},
+    )
+    assert response.status_code == 502
+    assert "TScamCollector001" not in response.text
+
+
+def test_api_key_enforced_when_configured(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CHAINLENS_API_KEY", "secret-key")
+    body = {"address": "TDemoAddress", "mode": "example"}
+    assert client.post("/score", json=body).status_code == 401
+    ok = client.post("/score", json=body, headers={"X-API-Key": "secret-key"})
+    assert ok.status_code == 200
