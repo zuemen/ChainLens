@@ -9,12 +9,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import networkx as nx
 import numpy as np
 import pandas as pd
-import torch
-from torch_geometric.data import Data
+
+if TYPE_CHECKING:  # 僅型別檢查用；執行期由 load_elliptic_pyg 內延遲載入
+    from torch_geometric.data import Data
 
 TRAIN_MAX_STEP = 34  # 官方時間切分：train <= 34、test >= 35，避免資料洩漏
 
@@ -71,7 +73,13 @@ def load_elliptic_pyg(raw_dir: Path, extra_features: np.ndarray | None = None) -
 
     extra_features：shape=(節點數, k) 的額外特徵（如 SNA 指標），
     列順序須與 features CSV 一致，會串接到 data.x 之後。
+
+    torch / torch_geometric 於此延遲載入——讓不需訓練的服務（如 Vercel 上的 API）
+    可完全不安裝這批重依賴（torch CPU wheel 遠超 serverless 250MB 上限）。
     """
+    import torch
+    from torch_geometric.data import Data
+
     features, labels, edges = _load_frames(raw_dir)
     tx_ids = features[0].astype(int).to_numpy()
     index_of = {tx: i for i, tx in enumerate(tx_ids)}

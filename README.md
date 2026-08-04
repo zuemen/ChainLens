@@ -142,6 +142,46 @@ chainlens/
 └── app/         # workbench.py（Streamlit 雙模式：出金審查 Demo + 金流圖譜工作台）
 ```
 
+## 部署
+
+### Vercel（FastAPI 風險評分 API，最省事）
+
+API 執行路徑不依賴 torch（僅 `train.py` 需要，已改延遲載入），故可塞進 serverless。專案含 `api/index.py`（ASGI 進入點）、`vercel.json`（路由 + 記憶體/timeout）與**輕量** `requirements.txt`（不含 torch/streamlit，約 180MB，符合 250MB 上限）。
+
+```bash
+npm i -g vercel        # 若未安裝
+vercel                 # 首次：連結專案
+vercel --prod          # 正式部署 → https://<你的專案>.vercel.app
+```
+
+- 於 Vercel 專案 Settings → Environment Variables 填 `TRONGRID_API_KEY`（選配）、`CHAINLENS_API_KEY`（選配，設定後 `/score` 需帶 `X-API-Key`）。
+- 端點：`/health`、`POST /score`、`/docs`。試打：`curl -X POST https://<你的專案>.vercel.app/score -H "Content-Type: application/json" -d '{"address":"TScamCollector001","mode":"example"}'`
+- **限制**：Vercel 只跑得了 JSON API。elliptic 訓練模式（載 203k 圖）與 **Streamlit 視覺工作台**（含 50 萬 USDT 出金審查 Demo）需常駐/重依賴，無法上 serverless。
+- **視覺 Demo 最簡單的免費去處**：[Streamlit Community Cloud](https://share.streamlit.io)——連 GitHub、主檔選 `chainlens/app/workbench.py`、免 Docker 一鍵上線。
+
+### Render / Railway（整包 API + Streamlit，含視覺 Demo）
+
+專案含 `Dockerfile`（API 與 Streamlit 共用一份映像，啟動指令切換）與 `render.yaml`（Render Blueprint，一鍵起兩個服務）。
+
+**Render**：Dashboard → New → Blueprint → 選本 repo，`render.yaml` 會自動建立 `chainlens-api`（FastAPI，healthcheck `/health`）與 `chainlens-app`（Streamlit）兩個 web 服務；於各服務 Environment 分頁填入 `TRONGRID_API_KEY`（選配）與 `CHAINLENS_API_KEY`（選配，設定後 `/score` 需帶 `X-API-Key` 標頭）。
+
+**Railway**：自動偵測 `Dockerfile`。預設 `CMD` 跑 FastAPI；要另起 Streamlit 服務時，新增一個 service 指向同 repo，start command 設為：
+
+```bash
+streamlit run chainlens/app/workbench.py --server.address 0.0.0.0 --server.port $PORT --server.headless true
+```
+
+**本機 Docker 驗證**：
+
+```bash
+docker build -t chainlens .
+docker run -p 8000:8000 chainlens                        # API → http://localhost:8000/docs
+docker run -p 8501:8000 -e PORT=8000 chainlens \
+  sh -c "streamlit run chainlens/app/workbench.py --server.address 0.0.0.0 --server.port \$PORT"
+```
+
+> 平台以 `$PORT` 注入實際埠,容器一律綁 `0.0.0.0:$PORT`。映像含完整 ML 依賴(torch 等),非 Vercel serverless（其 250MB 上限裝不下 torch）。
+
 ## 開發
 
 - 套件管理：[uv](https://docs.astral.sh/uv/)；lint：`make lint`（ruff）；測試：`make test`（pytest，全部使用小型合成圖 fixture）

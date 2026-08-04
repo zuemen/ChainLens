@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 from pathlib import Path
@@ -19,7 +20,8 @@ import networkx as nx
 USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"  # TRON 主網 USDT
 BASE_URL = "https://api.trongrid.io/v1/accounts/{address}/transactions/trc20"
 ANON_DELAY_SECONDS = 0.5  # 無 API key 時的匿名限速延遲
-DEFAULT_CACHE_DIR = Path("data/cache")
+# 快取目錄可經 CHAINLENS_CACHE_DIR 覆寫（serverless 需指向可寫的 /tmp）
+DEFAULT_CACHE_DIR = Path(os.getenv("CHAINLENS_CACHE_DIR", "data/cache"))
 DEFAULT_CACHE_TTL_SECONDS = 24 * 3600  # 鏈上金流持續變動，快取一天後過期重抓
 CACHE_FORMAT_VERSION = 2  # v2 起帶 tx_id 以去重；舊格式快取一律視為失效
 
@@ -145,14 +147,19 @@ def fetch_two_hop_graph(
                 transfers.extend(_fetch_transfers(peer, api_key, client))
         transfers = _dedupe_transfers(transfers)
         if cache_file:
-            cache_file.parent.mkdir(parents=True, exist_ok=True)
-            cache_file.write_text(
-                json.dumps(
-                    {"version": CACHE_FORMAT_VERSION, "transfers": transfers},
-                    ensure_ascii=False,
-                ),
-                encoding="utf-8",
-            )
+            # 快取為選配加速；唯讀檔案系統（如 Vercel serverless，除 /tmp 外唯讀）
+            # 寫入失敗不應中斷評分，靜默略過即可
+            try:
+                cache_file.parent.mkdir(parents=True, exist_ok=True)
+                cache_file.write_text(
+                    json.dumps(
+                        {"version": CACHE_FORMAT_VERSION, "transfers": transfers},
+                        ensure_ascii=False,
+                    ),
+                    encoding="utf-8",
+                )
+            except OSError:
+                pass
     g = build_graph_from_transfers(transfers)
     g.graph["center"] = address
     return g

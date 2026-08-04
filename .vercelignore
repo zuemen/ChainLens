@@ -1,0 +1,24 @@
+# 只上傳 API serverless function 所需；排除訓練/視覺化/資料/測試等重物
+.venv
+**/__pycache__
+.pytest_cache
+.ruff_cache
+
+data/
+checkpoints/
+research/
+docs/
+tests/
+
+# API 不需要的模組（torch / streamlit 依賴），排除以縮小 bundle
+chainlens/models/
+chainlens/app/
+
+# 排除 pyproject/uv.lock：強制 Vercel 只用 requirements.txt 裝輕量依賴，
+# 不會誤走 pyproject 的 [project.dependencies] 把 torch 裝回來。
+# chainlens 套件由 Vercel 直接從檔案系統匯入（root 在 sys.path），無需安裝。
+pyproject.toml
+uv.lock
+Dockerfile
+render.yaml
+Makefile
