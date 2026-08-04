@@ -155,7 +155,7 @@ vercel --prod          # 正式部署 → https://<你的專案>.vercel.app
 ```
 
 - 於 Vercel 專案 Settings → Environment Variables 填 `TRONGRID_API_KEY`（選配）、`CHAINLENS_API_KEY`（選配，設定後 `/score` 需帶 `X-API-Key`）。
-- 端點：`/health`、`POST /score`、`/docs`。試打：`curl -X POST https://<你的專案>.vercel.app/score -H "Content-Type: application/json" -d '{"address":"TScamCollector001","mode":"example"}'`
+- 端點：`/`（導向 `/docs`）、`/health`、`POST /score`、`/docs`。本服務為純 JSON API，無前端頁面——直接開網址會落到 Swagger 互動文件。試打：`curl -X POST https://<你的專案>.vercel.app/score -H "Content-Type: application/json" -d '{"address":"TScamCollector001","mode":"example"}'`
 - **限制**：Vercel 只跑得了 JSON API。elliptic 訓練模式（載 203k 圖）與 **Streamlit 視覺工作台**（含 50 萬 USDT 出金審查 Demo）需常駐/重依賴，無法上 serverless。
 - **視覺 Demo 最簡單的免費去處**：[Streamlit Community Cloud](https://share.streamlit.io)——連 GitHub、主檔選 `chainlens/app/workbench.py`、免 Docker 一鍵上線。
 

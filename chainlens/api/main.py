@@ -22,6 +22,7 @@ import httpx
 import networkx as nx
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel, Field, model_validator
 
 from chainlens.data import elliptic, tron
@@ -63,6 +64,18 @@ class ScoreRequest(BaseModel):
         if not self.address and not self.tx_id:
             raise ValueError("address 與 tx_id 至少需提供一項")
         return self
+
+
+@app.get("/", include_in_schema=False)
+def root() -> RedirectResponse:
+    """本服務為純 API，無前端頁面；根路徑導向互動式文件供瀏覽器訪客試打。"""
+    return RedirectResponse("/docs")
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon() -> Response:
+    """瀏覽器會自動索取 favicon，回 204 避免 log 充斥無意義的 404。"""
+    return Response(status_code=204)
 
 
 @app.get("/health")

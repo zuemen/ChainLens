@@ -81,3 +81,21 @@ def test_api_key_enforced_when_configured(monkeypatch: pytest.MonkeyPatch) -> No
     assert client.post("/score", json=body).status_code == 401
     ok = client.post("/score", json=body, headers={"X-API-Key": "secret-key"})
     assert ok.status_code == 200
+
+
+def test_root_redirects_to_docs() -> None:
+    """根路徑不應回 404：導向互動式 API 文件，讓瀏覽器訪客有落點。"""
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code in (307, 308)
+    assert response.headers["location"] == "/docs"
+
+
+def test_root_follows_through_to_docs() -> None:
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "swagger" in response.text.lower()
+
+
+def test_favicon_no_content() -> None:
+    """瀏覽器自動索取 favicon，回 204 避免無謂的 404 噪音。"""
+    assert client.get("/favicon.ico").status_code == 204
