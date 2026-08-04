@@ -99,3 +99,8 @@ def test_root_follows_through_to_docs() -> None:
 def test_favicon_no_content() -> None:
     """瀏覽器自動索取 favicon，回 204 避免無謂的 404 噪音。"""
     assert client.get("/favicon.ico").status_code == 204
+
+
+def test_favicon_png_no_content() -> None:
+    """瀏覽器亦會索取 /favicon.png，一併回 204。"""
+    assert client.get("/favicon.png").status_code == 204

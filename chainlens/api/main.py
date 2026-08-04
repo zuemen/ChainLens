@@ -73,8 +73,9 @@ def root() -> RedirectResponse:
 
 
 @app.get("/favicon.ico", include_in_schema=False)
+@app.get("/favicon.png", include_in_schema=False)
 def favicon() -> Response:
-    """瀏覽器會自動索取 favicon，回 204 避免 log 充斥無意義的 404。"""
+    """瀏覽器會自動索取 favicon（.ico 與 .png 皆會試），回 204 避免 log 充斥無意義的 404。"""
     return Response(status_code=204)
 
 
