@@ -34,11 +34,21 @@ export default function Screening() {
       setResult(await postScreen(target, amount))
       setOffline(false)
     } catch (err) {
-      // 連線完全失敗時退回內建快照，讓現場演示不中斷；畫面會明確標示為離線快照。
-      if (err instanceof ApiError && err.status === 0 && target === 'TOtcOut01') {
+      // 完全無法連線（斷網/DNS/CORS）或後端本身出錯（5xx，含 Vercel 冷啟動逾時）時
+      // 退回內建快照，讓現場演示不中斷；畫面會明確標示為離線快照。
+      // 4xx（例如 VITE_API_BASE 設錯導致的 404/405）不算——那是設定問題，
+      // 假裝查詢成功反而會掩蓋它。
+      if (
+        err instanceof ApiError &&
+        (err.status === 0 || err.status >= 500) &&
+        target === 'TOtcOut01'
+      ) {
         setResult(SCREENING_SNAPSHOT)
         setOffline(true)
       } else {
+        // 清掉上一次的結果，避免畫面同時顯示錯誤條與舊的（且可能是別的目標地址的）決策卡。
+        setResult(null)
+        setOffline(false)
         setError(err instanceof ApiError ? err.detail : '審查失敗，請稍後再試。')
       }
     } finally {
@@ -109,7 +119,7 @@ export default function Screening() {
       {error && <ErrorNotice message={error} action={{ label: '重試', onClick: run }} />}
 
       {offline && (
-        <ErrorNotice message="目前顯示的是內建離線快照，非即時查詢結果。" />
+        <ErrorNotice message="目前顯示的是內建離線快照（案例金額固定為 500,000 USDT，與上方輸入的申請金額無關），非即時查詢結果。" />
       )}
 
       {result && (

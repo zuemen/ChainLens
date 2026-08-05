@@ -7,9 +7,19 @@ import { GraphView } from '../graph/GraphView'
 
 const TRON_ADDRESS = /^T[1-9A-HJ-NP-Za-km-z]{33}$/
 
+type GraphSource = { kind: 'example' } | { kind: 'tron'; address: string }
+
+function sourceLabel(source: GraphSource | null): string {
+  if (!source) return ''
+  return source.kind === 'tron' ? `TRON 即時：${source.address}` : '內建範例圖'
+}
+
 export default function Workbench() {
   const [address, setAddress] = useState('')
   const [payload, setPayload] = useState<WorkbenchPayload | null>(null)
+  // 目前畫面上這張圖的來源；只在成功查詢後更新，失敗時維持不變——
+  // 這樣即使查詢失敗、畫面保留上一張圖，標題也如實反映那張圖到底是什麼。
+  const [source, setSource] = useState<GraphSource | null>(null)
   const [selected, setSelected] = useState<GraphNode | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -20,6 +30,7 @@ export default function Workbench() {
     try {
       const next = await postGraph(mode === 'tron' ? { mode, address } : { mode })
       setPayload(next)
+      setSource(mode === 'tron' ? { kind: 'tron', address } : { kind: 'example' })
       setSelected(null)
     } catch (err) {
       setError(err instanceof ApiError ? err.detail : '載入失敗，請稍後再試。')
@@ -99,13 +110,14 @@ export default function Workbench() {
         <>
           <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
             <Panel
-              title={`金流圖譜（${payload.meta.node_count} 節點 / ${payload.meta.edge_count} 邊）`}
+              title={`金流圖譜 · ${sourceLabel(source)}（${payload.meta.node_count} 節點 / ${payload.meta.edge_count} 邊）`}
             >
               <GraphView payload={payload} layout="cose" scheme="risk" onSelect={handleSelect} />
               {payload.meta.truncated && (
                 <p className="mt-3 text-xs" style={{ color: 'var(--color-risk-med)' }}>
                   圖譜顯示風險最高的 {payload.meta.node_count} 個節點（原始共{' '}
-                  {payload.meta.total_node_count} 個）。完整連線見下方鄰接表。
+                  {payload.meta.total_node_count} 個）。下方鄰接表僅列出這{' '}
+                  {payload.meta.node_count} 個節點之間的連線，被截斷節點的連線不會出現在表中。
                 </p>
               )}
               <p className="mt-3 text-xs text-muted">點選節點查看該地址的風險證據。</p>
