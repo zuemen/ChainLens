@@ -159,6 +159,32 @@ vercel --prod          # 正式部署 → https://<你的專案>.vercel.app
 - **限制**：Vercel 只跑得了 JSON API。elliptic 訓練模式（載 203k 圖）與 **Streamlit 視覺工作台**（含 50 萬 USDT 出金審查 Demo）需常駐/重依賴，無法上 serverless。
 - **視覺 Demo 最簡單的免費去處**：[Streamlit Community Cloud](https://share.streamlit.io)——連 GitHub、主檔選 `chainlens/app/workbench.py`、免 Docker 一鍵上線。
 
+### Demo 網站（web/）
+
+`web/` 是對外的 Demo 網站（Vite + React），部署為**獨立的 Vercel 專案**，
+與 API 專案分開，避免動到 API 的框架偵測設定。
+
+Vercel 專案設定：
+
+| 欄位 | 值 |
+|---|---|
+| Root Directory | `web` |
+| Framework Preset | Vite |
+| Build Command | `npm run build` |
+| Output Directory | `dist` |
+| 環境變數 | `VITE_API_BASE` = API 專案網址（例：`https://chain-lens-beta.vercel.app`） |
+
+API 專案需設定 `CHAINLENS_CORS_ORIGINS` 為網站網址（逗號分隔可多個）；
+未設定時預設全開。
+
+本機開發：
+
+```bash
+make api                      # 終端機 A：FastAPI 於 :8000
+cd web && cp .env.example .env  # 把 VITE_API_BASE 改成 http://localhost:8000
+npm install && npm run dev    # 終端機 B：Vite 於 :5173
+```
+
 ### Render / Railway（整包 API + Streamlit，含視覺 Demo）
 
 專案含 `Dockerfile`（API 與 Streamlit 共用一份映像，啟動指令切換）與 `render.yaml`（Render Blueprint，一鍵起兩個服務）。
