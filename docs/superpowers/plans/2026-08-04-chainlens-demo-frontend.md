@@ -703,7 +703,9 @@ def test_graph_example_mode_contract() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["meta"]["node_count"] == 25
+    assert body["meta"]["total_node_count"] == 25
     assert body["meta"]["edge_count"] == 23
+    assert body["meta"]["truncated"] is False  # 25 遠低於 300 上限
     assert body["meta"]["story_zh"] is None
     assert len(body["nodes"]) == 25
     assert {n["role"] for n in body["nodes"]} == {"normal"}
@@ -932,6 +934,11 @@ export default defineConfig({
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- 字體來自 Google Fonts；先建立連線可省下一次 DNS + TLS 往返。
+         Noto Sans TC 是中日韓字體，體積大，Google 以 unicode-range 分片供應，
+         這個 preconnect 對首次繪製的影響特別明顯。 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <title>鏈鏡 ChainLens — 虛擬資產詐騙金流偵測平台</title>
     <meta
       name="description"
@@ -1735,8 +1742,15 @@ git commit -m "feat(web): add dark theme shell, navigation and shared components
   - `nodeColor(node: GraphNode, options: { scheme: ColorScheme; focus?: string }): string`
   - `<GraphView payload, highlightPath?, focus?, layout: 'dagre' | 'cose', scheme: ColorScheme, onSelect?>`
 
-> **不要**改用 Task 6 的 `riskColor`：它回傳的是 `var(--color-risk-high)` 這類 CSS 變數，
-> Cytoscape 在 canvas 上繪製，解析不了 CSS 變數。這裡必須用原始 hex 值。
+> **本檔的顏色與主題 token 是兩套，不要「修正」成一致——這是刻意的。**
+>
+> - Task 6 的 `riskColor` 回傳 `var(--color-risk-*)`，是**畫在 DOM 上的文字色**，
+>   門檻 4.5:1，所以用較亮的 `#F87171` 系列。
+> - 本檔的 hex 是**畫在 canvas 上的圖形填色**，門檻 3:1，沿用 `chainlens/app/workbench.py`
+>   既有的 `ROLE_COLOR`（實測全部通過，最低 `#c0392b` 為 3.45:1），以維持與
+>   `docs/images/` 既有截圖的一致性。
+>
+> 另外 Cytoscape 在 canvas 上繪製，**解析不了 CSS 變數**，這裡技術上也只能用原始 hex。
 
 - [ ] **Step 1: 寫失敗的測試**
 
@@ -2071,7 +2085,8 @@ export function GraphView({
     <div
       ref={container}
       data-testid="graph-view"
-      className="h-[520px] w-full rounded border border-line bg-[#0d1219]"
+      className="h-[520px] w-full rounded border border-line"
+      style={{ backgroundColor: 'var(--color-graph-bg)' }}
     />
   )
 }
