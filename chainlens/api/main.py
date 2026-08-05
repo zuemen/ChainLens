@@ -26,7 +26,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel, Field, model_validator
 
-from chainlens.api.serialize import graph_to_json
+from chainlens.api.serialize import graph_to_json, sna_table
 from chainlens.data import elliptic, scenario, tron
 from chainlens.explain.evidence import PipelineResult, generate_evidence, run_pipeline
 from chainlens.explain.screening import screen_withdrawal
@@ -95,6 +95,13 @@ class ScreenRequest(BaseModel):
     request_id: str | None = Field(default=None, max_length=64)
 
 
+class GraphRequest(BaseModel):
+    """工作台圖譜請求：內建範例圖，或 TronGrid 即時抓取的 2-hop 真實圖。"""
+
+    mode: Literal["example", "tron"] = "example"
+    address: str | None = Field(default=None, max_length=64)
+
+
 @app.get("/", include_in_schema=False)
 def root() -> RedirectResponse:
     """本服務為純 API，無前端頁面；根路徑導向互動式文件供瀏覽器訪客試打。"""
@@ -153,6 +160,39 @@ def screen(req: ScreenRequest, x_api_key: str | None = Header(default=None)) -> 
         [str(node) for node in associations[0]["path"]] if associations else []
     )
     return result
+
+
+@app.post("/graph")
+def graph(req: GraphRequest, x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+    """工作台圖譜：回傳節點、邊、meta 與依風險排序的 SNA 指標表。"""
+    _check_api_key(x_api_key)
+
+    if req.mode == "example":
+        g = tron.load_example_graph()
+    else:
+        if not req.address:
+            raise HTTPException(status_code=400, detail="tron 模式需提供 address")
+        if not tron.is_valid_tron_address(req.address):
+            raise HTTPException(
+                status_code=400,
+                detail="address 需為合法 TRON 主網地址（T 開頭 Base58 34 字元）",
+            )
+        try:
+            g = tron.fetch_two_hop_graph(req.address, api_key=os.getenv("TRONGRID_API_KEY"))
+        except httpx.HTTPError as exc:
+            raise HTTPException(
+                status_code=502, detail=f"TronGrid 抓取失敗：{exc.__class__.__name__}"
+            ) from exc
+        if g.number_of_nodes() == 0:
+            raise HTTPException(status_code=404, detail=f"地址 {req.address} 查無 USDT 轉帳")
+
+    sna_df, partition, risk_ratios, motif_hits = run_pipeline(g)
+    evidences = _evidences_for(g, sna_df, partition, risk_ratios, motif_hits)
+    payload = graph_to_json(
+        g, evidences, sna_df, motif_centers={hit.center for hit in motif_hits}
+    )
+    payload["sna"] = sna_table(sna_df, evidences)
+    return payload
 
 
 def _build_graph(req: ScoreRequest) -> tuple[nx.DiGraph, Any]:

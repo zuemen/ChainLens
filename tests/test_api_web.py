@@ -72,3 +72,76 @@ def test_cors_headers_present() -> None:
     )
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "*"
+
+
+def test_graph_example_mode_contract() -> None:
+    response = client.post("/graph", json={"mode": "example"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["node_count"] == 25
+    assert body["meta"]["total_node_count"] == 25
+    assert body["meta"]["edge_count"] == 23
+    assert body["meta"]["truncated"] is False  # 25 遠低於 300 上限
+    assert body["meta"]["story_zh"] is None
+    assert len(body["nodes"]) == 25
+    assert {n["role"] for n in body["nodes"]} == {"normal"}
+
+
+def test_graph_example_mode_returns_sna_table() -> None:
+    body = client.post("/graph", json={"mode": "example"}).json()
+    assert len(body["sna"]) == 15
+    scores = [row["score"] for row in body["sna"]]
+    assert scores == sorted(scores, reverse=True)
+
+
+def test_graph_tron_mode_requires_address() -> None:
+    response = client.post("/graph", json={"mode": "tron"})
+    assert response.status_code == 400
+    assert response.json()["detail"] == "tron 模式需提供 address"
+
+
+def test_graph_tron_mode_rejects_malformed_address() -> None:
+    response = client.post("/graph", json={"mode": "tron", "address": "not-an-address"})
+    assert response.status_code == 400
+    assert "合法 TRON 主網地址" in response.json()["detail"]
+
+
+def test_graph_tron_failure_returns_502_not_a_silent_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """抓取失敗必須誠實回錯，不得偷偷改用範例圖冒充真實資料。"""
+    import httpx
+
+    from chainlens.api import main as api_main
+
+    def boom(*args: object, **kwargs: object) -> None:
+        raise httpx.ConnectError("network down")
+
+    monkeypatch.setattr(api_main.tron, "fetch_two_hop_graph", boom)
+    response = client.post(
+        "/graph",
+        json={"mode": "tron", "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"},
+    )
+    assert response.status_code == 502
+    assert "TScamCollector001" not in response.text
+
+
+def test_graph_tron_empty_result_returns_404(monkeypatch: pytest.MonkeyPatch) -> None:
+    import networkx as nx
+
+    from chainlens.api import main as api_main
+
+    monkeypatch.setattr(
+        api_main.tron, "fetch_two_hop_graph", lambda *a, **k: nx.DiGraph()
+    )
+    response = client.post(
+        "/graph",
+        json={"mode": "tron", "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"},
+    )
+    assert response.status_code == 404
+    assert "查無 USDT 轉帳" in response.json()["detail"]
+
+
+def test_graph_rejects_unknown_mode() -> None:
+    response = client.post("/graph", json={"mode": "elliptic"})
+    assert response.status_code == 422
