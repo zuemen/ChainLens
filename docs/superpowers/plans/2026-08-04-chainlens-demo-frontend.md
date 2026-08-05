@@ -2476,7 +2476,7 @@ git commit -m "feat(web): build the withdrawal screening demo page"
 `web/src/pages/Workbench.tsx`：
 
 ```tsx
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ApiError, postGraph } from '../api/client'
 import type { GraphNode, WorkbenchPayload } from '../api/types'
 import { ErrorNotice } from '../components/ErrorNotice'
@@ -2511,6 +2511,13 @@ export default function Workbench() {
     // 只在首次掛載時載入內建範例圖
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // 必須用 useCallback 穩定身分：GraphView 的 effect 依賴 onSelect 且清理時會 cy.destroy()，
+  // 若每次 render 都給新的行內函式，點一次節點就會重建整張圖並重跑 cose 排版。
+  const handleSelect = useCallback(
+    (id: string) => setSelected(payload?.nodes.find((node) => node.id === id) ?? null),
+    [payload],
+  )
 
   const addressValid = TRON_ADDRESS.test(address)
 
@@ -2578,9 +2585,7 @@ export default function Workbench() {
                 payload={payload}
                 layout="cose"
                 scheme="risk"
-                onSelect={(id) =>
-                  setSelected(payload.nodes.find((node) => node.id === id) ?? null)
-                }
+                onSelect={handleSelect}
               />
               {payload.meta.truncated && (
                 <p className="mt-3 text-xs" style={{ color: 'var(--color-risk-med)' }}>
