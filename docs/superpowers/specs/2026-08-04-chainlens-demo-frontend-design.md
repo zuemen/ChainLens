@@ -412,3 +412,15 @@ peel #d35400 / peel_side #7f8c8d / otc #9b59b6 / normal #5dade2
 `prefers-reduced-motion` 必須生效。動畫只用 `transform` 與 `opacity`。
 進場緩動用 ease-out，離場用 ease-in 且時長約為進場的 60–70%。
 清單／表格列的進場錯開 30–50ms。持續性動畫僅用於載入指示，不得用於裝飾。
+
+## 十、後續事項（實作後триаж結果）
+
+實作完成後的全分支審查留下 11 項次要發現，經триаж後多數可以真的等。以下三項有明確時限或條件，不應遺忘：
+
+| 事項 | 何時處理 | 說明 |
+|---|---|---|
+| react-router 的 npm audit 警告 | **對外公開前必須覆查** | 兩項 high 等級的 RSC-mode CSRF 公告。本站是純用戶端 SPA，不走 RSC，故目前不適用；修復需破壞性降版。公開前需重新確認該公告範圍是否擴大。 |
+| `/graph` 與 `_build_graph` 的 tron 分支重複 | 下次動到任一端點時 | 兩者的驗證順序、抓取呼叫、502/404 處理幾乎逐行相同，含三段使用者可見字串。任一處改動未同步就會產生不一致的錯誤訊息。 |
+| SPA rewrite 的部署後驗證 | **首次部署後立即** | `web/vercel.json` 的 catch-all rewrite 無法在本機證實——`vite preview` 自帶 history fallback 會遮住它。部署後以 `curl -I https://<網站>/screening` 確認回 200 而非 404。 |
+
+其餘次要項目（`toElements` 的邊防禦、三個未使用的契約欄位、StrictMode 下的重複請求、快照無執行期型別驗證以外的加固等）不影響正確性，可隨後續改動順手處理。
