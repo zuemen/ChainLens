@@ -22,11 +22,14 @@ import httpx
 import networkx as nx
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel, Field, model_validator
 
-from chainlens.data import elliptic, tron
+from chainlens.api.serialize import graph_to_json
+from chainlens.data import elliptic, scenario, tron
 from chainlens.explain.evidence import PipelineResult, generate_evidence, run_pipeline
+from chainlens.explain.screening import screen_withdrawal
 
 load_dotenv()  # 讀取 .env（TRONGRID_API_KEY / CHAINLENS_API_KEY）
 
@@ -34,6 +37,24 @@ app = FastAPI(
     title="ChainLens API",
     description="SNA + GNN 虛擬資產詐騙金流風險評分（附結構證據）",
     version="0.1.0",
+)
+
+
+def _cors_origins() -> list[str]:
+    """允許來源清單；未設定環境變數時全開。"""
+    raw = os.getenv("CHAINLENS_CORS_ORIGINS", "*")
+    origins = [origin.strip() for origin in raw.split(",") if origin.strip()]
+    return origins or ["*"]
+
+
+# allow_credentials 必須為 False：瀏覽器規範不允許它與 allow_origins=["*"] 併用，
+# 且本 API 不使用 cookie，僅選配的 X-API-Key 標頭。
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins(),
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-API-Key"],
 )
 
 RAW_DIR = Path("data/raw")
@@ -66,6 +87,14 @@ class ScoreRequest(BaseModel):
         return self
 
 
+class ScreenRequest(BaseModel):
+    """出金審查請求：目標地址限定為劇本情境中的兩個地址。"""
+
+    target: str = Field(max_length=64)
+    amount_usdt: float = Field(gt=0)
+    request_id: str | None = Field(default=None, max_length=64)
+
+
 @app.get("/", include_in_schema=False)
 def root() -> RedirectResponse:
     """本服務為純 API，無前端頁面；根路徑導向互動式文件供瀏覽器訪客試打。"""
@@ -82,6 +111,48 @@ def favicon() -> Response:
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+def _evidences_for(
+    g: nx.DiGraph,
+    sna_df: Any,
+    partition: dict[Any, int],
+    risk_ratios: dict[int, float],
+    motif_hits: list[Any],
+) -> dict[Any, dict[str, Any]]:
+    """全節點證據，供圖譜著色與節點面板使用。"""
+    return {
+        node: generate_evidence(node, g, sna_df, partition, risk_ratios, motif_hits)
+        for node in g.nodes()
+    }
+
+
+@app.post("/screen")
+def screen(req: ScreenRequest, x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+    """出金審查：回傳決策、關聯證據鏈、金流圖譜與 STR 草稿。"""
+    _check_api_key(x_api_key)
+    allowed = {scenario.WITHDRAWAL_TARGET, scenario.NORMAL_TARGET}
+    if req.target not in allowed:
+        raise HTTPException(status_code=400, detail="target 需為劇本情境中的出金地址")
+
+    g = scenario.load_withdrawal_scenario()
+    pipeline: PipelineResult = run_pipeline(g)
+    sna_df, partition, risk_ratios, motif_hits = pipeline
+
+    result = screen_withdrawal(
+        g, req.target, req.amount_usdt, request_id=req.request_id, pipeline=pipeline
+    )
+    result["graph"] = graph_to_json(
+        g,
+        _evidences_for(g, sna_df, partition, risk_ratios, motif_hits),
+        sna_df,
+        motif_centers={hit.center for hit in motif_hits},
+    )
+    associations = result["associations"]
+    result["highlight_path"] = (
+        [str(node) for node in associations[0]["path"]] if associations else []
+    )
+    return result
 
 
 def _build_graph(req: ScoreRequest) -> tuple[nx.DiGraph, Any]:

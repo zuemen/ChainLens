@@ -18,7 +18,7 @@ from typing import Any
 
 import networkx as nx
 
-from chainlens.explain.evidence import generate_evidence, run_pipeline
+from chainlens.explain.evidence import PipelineResult, generate_evidence, run_pipeline
 from chainlens.sna.motifs import MotifHit
 
 DEFAULT_MAX_HOPS = 4  # 關聯追溯之最大階數
@@ -171,6 +171,7 @@ def screen_withdrawal(
     request_id: str | None = None,
     max_hops: int = DEFAULT_MAX_HOPS,
     decay: float = DEFAULT_DECAY,
+    pipeline: PipelineResult | None = None,
 ) -> dict[str, Any]:
     """出金審查主流程：SNA 管線 → 目標證據 → 關聯追溯 → noisy-or 融合 → 決策＋STR。
 
@@ -179,6 +180,9 @@ def screen_withdrawal(
 
     target 不在圖中（全新地址、鏈上無交易紀錄——最常見的正常出金）時，
     回傳 insufficient_data 的放行結果而非拋錯。
+
+    pipeline 傳入已算好的 run_pipeline 結果時直接重用，供同一張圖上還要
+    產生圖譜 JSON 的呼叫端（API /screen）避免重算。
     """
     if target not in g:
         return {
@@ -199,7 +203,9 @@ def screen_withdrawal(
             "evidence": None,
             "str_draft_zh": None,
         }
-    sna_df, partition, risk_ratios, motif_hits = run_pipeline(g)
+    sna_df, partition, risk_ratios, motif_hits = (
+        pipeline if pipeline is not None else run_pipeline(g)
+    )
     evidence = generate_evidence(target, g, sna_df, partition, risk_ratios, motif_hits)
     associations = find_risky_associations(g, target, motif_hits, max_hops=max_hops)
 
