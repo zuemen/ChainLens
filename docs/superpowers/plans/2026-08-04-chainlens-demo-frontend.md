@@ -939,6 +939,13 @@ export default defineConfig({
          這個 preconnect 對首次繪製的影響特別明顯。 -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- 字體必須從這裡載入，不能寫在 index.css 的 @import：
+         Tailwind v4 展開後會把它擠到合法位置之後而被丟棄。
+         display=swap 避免字體載入期間文字不可見。 -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap"
+    />
     <title>鏈鏡 ChainLens — 虛擬資產詐騙金流偵測平台</title>
     <meta
       name="description"
@@ -969,9 +976,13 @@ playwright-report
 所有色值的對比皆為實算，依據見 spec 第九節。**不要自行更動這些值**——多數是為了通過
 WCAG 門檻才選定的，尤其 `--color-risk-high`。
 
+字體**不要**用 CSS `@import` 載入。Tailwind v4 的 `@import "tailwindcss"` 會就地展開，把字體的
+`@import` 擠到 CSS 允許 `@import` 的位置之後，結果整條規則在正式建置中被靜默丟棄——實測建置
+產物裡 `@import` 與 `fonts.googleapis` 出現次數皆為 0，字體永遠不會載入。字體改由
+`web/index.html` 的 `<link rel="stylesheet">` 載入（見該檔）。
+
 ```css
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap');
 
 @theme {
   /* 表面：slate 階系，可從同一階系推導整套 UI 色 */
