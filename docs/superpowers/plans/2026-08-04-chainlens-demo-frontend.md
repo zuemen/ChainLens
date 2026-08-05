@@ -19,7 +19,12 @@
 - 既有測試基線為 **61 個全綠**。每個任務結束時 `pytest -q` 的總數只能增加，不能有任何失敗。
 - 前端套件管理器用 **npm**（本機 npm 11.11、Node 25；CI 固定 Node 20）。
 - 前端所有使用者可見文字一律繁體中文。
-- 地址與數值一律等寬字體呈現。
+- 地址與數值一律等寬字體呈現（`IBM Plex Mono` + `tabular-nums`）。
+- **色票是實算過的，不得自行更動。** 依據見 spec 第九節。特別是 `--color-risk-high` 必須是
+  `#F87171`——`#EF4444` 在面板底色上只有 4.16:1，未達 WCAG AA 的 4.5:1。
+- **不得只用顏色傳達狀態。** 風險等級、服務狀態、導覽目前位置都必須同時有文字或字重差異。
+- 所有互動元素需有可見的鍵盤焦點樣式；`prefers-reduced-motion` 必須生效。
+- 不得使用 emoji 當圖示。
 - 提交訊息用英文，主旨行祈使句。
 
 ---
@@ -76,9 +81,9 @@
 **Interfaces:**
 - Consumes: 既有 `chainlens.explain.evidence.run_pipeline` / `generate_evidence`、`chainlens.data.scenario.ROLE_ZH`、`chainlens.sna.motifs.MotifHit`
 - Produces:
-  - `graph_to_json(g: nx.DiGraph, evidences: dict[Any, dict[str, Any]], sna_df: pd.DataFrame, *, motif_centers: set[Any], degraded: bool = False) -> dict[str, Any]`
+  - `graph_to_json(g: nx.DiGraph, evidences: dict[Any, dict[str, Any]], sna_df: pd.DataFrame, *, motif_centers: set[Any], degraded: bool = False, limit: int = MAX_GRAPH_NODES) -> dict[str, Any]`
   - `sna_table(sna_df: pd.DataFrame, evidences: dict[Any, dict[str, Any]], limit: int = 15) -> list[dict[str, Any]]`
-  - 常數 `DEFAULT_ROLE = "normal"`、`SNA_TABLE_LIMIT = 15`
+  - 常數 `DEFAULT_ROLE = "normal"`、`SNA_TABLE_LIMIT = 15`、`MAX_GRAPH_NODES = 300`
 
 - [ ] **Step 1: 寫失敗的測試**
 
@@ -164,6 +169,39 @@ def test_edges_without_attributes_degrade_cleanly() -> None:
     ]
 
 
+def test_large_graph_truncated_to_highest_risk_nodes() -> None:
+    """超過上限時保留風險最高的節點，並誠實標示已截斷。"""
+    g = scenario.load_withdrawal_scenario()
+    sna_df, evidences, centers = _payload_for(g)
+    payload = graph_to_json(g, evidences, sna_df, motif_centers=centers, limit=10)
+    assert payload["meta"]["truncated"] is True
+    assert payload["meta"]["node_count"] == 10
+    assert payload["meta"]["total_node_count"] == 53
+    assert len(payload["nodes"]) == 10
+    scores = [n["score"] for n in payload["nodes"]]
+    assert scores == sorted(scores, reverse=True)
+
+
+def test_truncated_graph_drops_edges_to_removed_nodes() -> None:
+    """截斷後不得留下指向已移除節點的邊，否則前端渲染會出現孤兒引用。"""
+    g = scenario.load_withdrawal_scenario()
+    sna_df, evidences, centers = _payload_for(g)
+    payload = graph_to_json(g, evidences, sna_df, motif_centers=centers, limit=10)
+    ids = {n["id"] for n in payload["nodes"]}
+    for edge in payload["edges"]:
+        assert edge["source"] in ids
+        assert edge["target"] in ids
+    assert payload["meta"]["edge_count"] == len(payload["edges"])
+
+
+def test_graph_under_limit_is_not_marked_truncated() -> None:
+    g = scenario.load_withdrawal_scenario()
+    sna_df, evidences, centers = _payload_for(g)
+    payload = graph_to_json(g, evidences, sna_df, motif_centers=centers)
+    assert payload["meta"]["truncated"] is False
+    assert payload["meta"]["total_node_count"] == 53
+
+
 def test_meta_carries_story_and_degraded_flag() -> None:
     g = scenario.load_withdrawal_scenario()
     sna_df, evidences, centers = _payload_for(g)
@@ -231,6 +269,26 @@ from chainlens.data.scenario import ROLE_ZH
 DEFAULT_ROLE = "normal"
 SNA_TABLE_LIMIT = 15
 
+# 每個節點的 JSON 實測約 500 bytes（narrative_zh 是多句中文敘事）。
+# TronGrid 的真實 2-hop 圖可達 795 節點 → 約 390KB 回應，經冷啟動的 serverless
+# 傳輸過慢，且力導向排版在該量級會糊成無法閱讀的毛球。300 落在圖形函式庫
+# 舒適的 101–500 canvas 區間。
+MAX_GRAPH_NODES = 300
+
+
+def _retained_nodes(
+    g: nx.DiGraph, evidences: dict[Any, dict[str, Any]], limit: int
+) -> list[Any]:
+    """超過上限時只保留風險分數最高的 limit 個節點。"""
+    if g.number_of_nodes() <= limit:
+        return list(g.nodes())
+    ranked = sorted(
+        g.nodes(),
+        key=lambda node: (evidences.get(node, {}).get("score", 0.0), str(node)),
+        reverse=True,
+    )
+    return ranked[:limit]
+
 
 def graph_to_json(
     g: nx.DiGraph,
@@ -239,15 +297,23 @@ def graph_to_json(
     *,
     motif_centers: set[Any],
     degraded: bool = False,
+    limit: int = MAX_GRAPH_NODES,
 ) -> dict[str, Any]:
     """圖 + 全節點證據 → 前端圖譜 JSON。
 
     只有 scenario 劇本圖的節點有 role 屬性；範例圖與 TronGrid 抓回的真實圖
     一律沒有，會落到 DEFAULT_ROLE。前端因此不能只靠角色著色。
+
+    節點數超過 limit 時依風險分數截斷，並在 meta 標示 truncated 與原始節點數，
+    讓前端能誠實告知使用者看到的不是全圖。
     """
     pagerank = sna_df["pagerank"].to_dict() if not sna_df.empty else {}
+    retained = _retained_nodes(g, evidences, limit)
+    retained_set = set(retained)
+
     nodes = []
-    for node, attrs in g.nodes(data=True):
+    for node in retained:
+        attrs = g.nodes[node]
         evidence = evidences.get(node, {})
         role = attrs.get("role") or DEFAULT_ROLE
         nodes.append(
@@ -265,6 +331,8 @@ def graph_to_json(
 
     edges = []
     for source, target, attrs in g.edges(data=True):
+        if source not in retained_set or target not in retained_set:
+            continue
         timestamp = attrs.get("timestamp")
         edges.append(
             {
@@ -279,8 +347,10 @@ def graph_to_json(
         "nodes": nodes,
         "edges": edges,
         "meta": {
-            "node_count": g.number_of_nodes(),
-            "edge_count": g.number_of_edges(),
+            "node_count": len(nodes),
+            "total_node_count": g.number_of_nodes(),
+            "edge_count": len(edges),
+            "truncated": len(nodes) < g.number_of_nodes(),
             "story_zh": g.graph.get("story_zh"),
             "degraded": degraded,
         },
@@ -314,12 +384,12 @@ def sna_table(
 - [ ] **Step 4: 跑測試確認通過**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_serialize.py -q && .venv/Scripts/python.exe -m ruff check chainlens tests`
-Expected: 9 passed；ruff `All checks passed!`
+Expected: 12 passed；ruff `All checks passed!`
 
 - [ ] **Step 5: 確認沒有回歸並提交**
 
 Run: `.venv/Scripts/python.exe -m pytest -q`
-Expected: 70 passed（61 既有 + 9 新增）
+Expected: 73 passed（61 既有 + 12 新增）
 
 ```bash
 git add chainlens/api/serialize.py tests/test_serialize.py
@@ -602,7 +672,7 @@ Expected: 9 passed
 - [ ] **Step 6: 確認沒有回歸並提交**
 
 Run: `.venv/Scripts/python.exe -m pytest -q && .venv/Scripts/python.exe -m ruff check chainlens tests`
-Expected: 79 passed；ruff `All checks passed!`
+Expected: 82 passed；ruff `All checks passed!`
 
 ```bash
 git add chainlens/api/main.py chainlens/explain/screening.py tests/test_api_web.py tests/test_screening_pipeline_reuse.py
@@ -766,7 +836,7 @@ Expected: 14 passed
 - [ ] **Step 5: 確認沒有回歸並提交**
 
 Run: `.venv/Scripts/python.exe -m pytest -q && .venv/Scripts/python.exe -m ruff check chainlens tests`
-Expected: 86 passed；ruff `All checks passed!`
+Expected: 89 passed；ruff `All checks passed!`
 
 ```bash
 git add chainlens/api/main.py tests/test_api_web.py
@@ -889,24 +959,40 @@ playwright-report
 
 `web/src/index.css`：
 
+所有色值的對比皆為實算，依據見 spec 第九節。**不要自行更動這些值**——多數是為了通過
+WCAG 門檻才選定的，尤其 `--color-risk-high`。
+
 ```css
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap');
 
 @theme {
-  --color-base: #0b0f14;
-  --color-panel: #121820;
-  --color-panel-raised: #18202b;
-  --color-line: #1f2a37;
-  --color-ink: #e6edf3;
-  --color-muted: #8b98a5;
+  /* 表面：slate 階系，可從同一階系推導整套 UI 色 */
+  --color-base: #0F172A;         /* slate-900 */
+  --color-panel: #1B2336;
+  --color-panel-raised: #222B40;
 
-  --color-risk-high: #e74c3c;
-  --color-risk-med: #f5b041;
-  --color-risk-low: #35d0a5;
-  --color-focus: #f1c40f;
-  --color-path: #f39c12;
+  /* 邊框分兩階：裝飾線不受 3:1 規範，控制項邊界必須達標 */
+  --color-line: #334155;         /* 1.72:1 — 僅供分隔線與面板外框 */
+  --color-line-strong: #64748B;  /* 3.75:1 — 表單輸入框與控制項邊界 */
 
-  --font-mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+  --color-ink: #F8FAFC;          /* 17.06:1 於 base */
+  --color-muted: #94A3B8;        /* 6.96:1 於 base、6.11:1 於 panel */
+
+  /* 風險語意色：文字用，兩種底色皆 ≥4.5:1 */
+  --color-risk-high: #F87171;    /* 6.45 / 5.66 — 不可改回 #EF4444，它在面板上只有 4.16 */
+  --color-risk-med: #F59E0B;     /* 8.31 / 7.30 */
+  --color-risk-low: #22C55E;     /* 7.83 / 6.88 */
+
+  /* 圖譜專用（非文字，門檻 3:1，繪製於 canvas） */
+  --color-graph-bg: #0d1219;
+  --color-focus: #f1c40f;        /* 11.31:1 於畫布 */
+  --color-path: #f39c12;         /* 8.57:1 於畫布 */
+
+  --color-ring: #38BDF8;         /* 8.33:1 — 鍵盤焦點環 */
+
+  --font-sans: "IBM Plex Sans", "Noto Sans TC", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
 html {
@@ -917,13 +1003,34 @@ html {
 
 body {
   margin: 0;
-  font-family: system-ui, "Noto Sans TC", sans-serif;
+  font-family: var(--font-sans);
 }
 
-/* 地址與數值一律等寬，這是法遵工具的閱讀慣例 */
+/* 地址與數值一律等寬且等距數字，這是法遵工具的閱讀慣例，也避免數字跳動 */
 .tabular {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+}
+
+/* 表單控制項的邊界是識別它的唯一依據，必須用達標的那一階 */
+input,
+select {
+  border-color: var(--color-line-strong);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 ```
 
@@ -1048,6 +1155,7 @@ git commit -m "build(web): scaffold Vite React frontend with CI job"
   - `postScreen(target: string, amountUsdt: number): Promise<ScreenResult>`
   - `postGraph(body: { mode: 'example' | 'tron'; address?: string }): Promise<WorkbenchPayload>`
   - `warmUp(): void`
+  - `checkHealth(): Promise<boolean>`
   - `ApiError`（含 `status: number`、`detail: string`）
   - `SCREENING_SNAPSHOT: ScreenResult`
 
@@ -1078,8 +1186,13 @@ export interface GraphEdge {
 }
 
 export interface GraphMeta {
+  /** 實際回傳（可能已截斷）的節點數 */
   node_count: number
+  /** 截斷前的原始節點數 */
+  total_node_count: number
   edge_count: number
+  /** 超過 300 節點上限而截斷；前端必須告知使用者 */
+  truncated: boolean
   story_zh: string | null
   degraded: boolean
 }
@@ -1279,6 +1392,16 @@ export function postGraph(body: {
 /** 背景喚醒 serverless 函式。冷啟動實測約 5 秒，趁使用者閱讀時吃掉。 */
 export function warmUp(): void {
   void fetch(`${API_BASE}/health`).catch(() => undefined)
+}
+
+/** 分析服務是否可用，供首頁的即時狀態指示使用。 */
+export async function checkHealth(): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE}/health`)
+    return response.ok
+  } catch {
+    return false
+  }
 }
 ```
 
@@ -1500,6 +1623,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-base text-ink">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-ink focus:px-4 focus:py-2 focus:text-base"
+      >
+        跳至主要內容
+      </a>
+
       <header className="border-b border-line">
         <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-6 px-6 py-4">
           <span className="font-semibold">
@@ -1511,16 +1641,25 @@ export default function App() {
                 key={item.to}
                 to={item.to}
                 end={item.to === '/'}
-                className={({ isActive }) => (isActive ? 'text-ink' : 'text-muted')}
+                // 目前位置不只靠顏色標示，同時加粗並提供 aria-current
+                className={({ isActive }) =>
+                  isActive ? 'font-semibold text-ink' : 'text-muted'
+                }
               >
                 {item.label}
               </NavLink>
             ))}
           </div>
+          <NavLink
+            to="/screening"
+            className="ml-auto rounded bg-ink px-4 py-1.5 text-sm font-semibold text-base"
+          >
+            看 Demo
+          </NavLink>
         </nav>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
+      <main id="main" className="mx-auto max-w-6xl px-6 py-8">
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/screening" element={<Screening />} />
@@ -1645,7 +1784,14 @@ const payload: GraphPayload = {
     { source: 'TAggregator01', target: 'TMule03', amount: 86000, timestamp: 1760000600 },
     { source: 'TMule03', target: 'TOtcOut01', amount: 86000, timestamp: 1760001200 },
   ],
-  meta: { node_count: 3, edge_count: 2, story_zh: null, degraded: false },
+  meta: {
+    node_count: 3,
+    total_node_count: 3,
+    edge_count: 2,
+    truncated: false,
+    story_zh: null,
+    degraded: false,
+  },
 }
 
 describe('toElements', () => {
@@ -1984,7 +2130,18 @@ const blocked: ScreenResult = {
   ],
   evidence: null,
   str_draft_zh: '草稿',
-  graph: { nodes: [], edges: [], meta: { node_count: 0, edge_count: 0, story_zh: null, degraded: false } },
+  graph: {
+    nodes: [],
+    edges: [],
+    meta: {
+      node_count: 0,
+      total_node_count: 0,
+      edge_count: 0,
+      truncated: false,
+      story_zh: null,
+      degraded: false,
+    },
+  },
   highlight_path: ['TAggregator01', 'TMule03', 'TOtcOut01'],
 }
 
@@ -2399,6 +2556,12 @@ export default function Workbench() {
                   setSelected(payload.nodes.find((node) => node.id === id) ?? null)
                 }
               />
+              {payload.meta.truncated && (
+                <p className="mt-3 text-xs" style={{ color: 'var(--color-risk-med)' }}>
+                  圖譜顯示風險最高的 {payload.meta.node_count} 個節點（原始共{' '}
+                  {payload.meta.total_node_count} 個）。完整連線見下方鄰接表。
+                </p>
+              )}
               <p className="mt-3 text-xs text-muted">點選節點查看該地址的風險證據。</p>
             </Panel>
 
@@ -2414,6 +2577,35 @@ export default function Workbench() {
               )}
             </Panel>
           </div>
+
+          <Panel title="資金流向明細（鄰接表）">
+            <p className="mb-3 text-xs text-muted">
+              圖譜對螢幕閱讀器不可讀，此表為等效的文字替代，列出圖中每一條資金流向。
+            </p>
+            <div className="max-h-80 overflow-auto">
+              <table className="tabular w-full text-left text-xs">
+                <caption className="sr-only">
+                  金流圖譜的鄰接表，欄位為來源地址、目標地址與轉帳金額
+                </caption>
+                <thead className="sticky top-0 bg-panel text-muted">
+                  <tr>
+                    <th scope="col" className="py-2 pr-4 font-normal">來源</th>
+                    <th scope="col" className="py-2 pr-4 font-normal">目標</th>
+                    <th scope="col" className="py-2 pr-4 font-normal">金額（USDT）</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payload.edges.map((edge) => (
+                    <tr key={`${edge.source}->${edge.target}`} className="border-t border-line">
+                      <td className="py-2 pr-4">{edge.source}</td>
+                      <td className="py-2 pr-4">{edge.target}</td>
+                      <td className="py-2 pr-4">{edge.amount.toLocaleString('zh-TW')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
 
           <Panel title="SNA 指標（依風險分數排序前 15 名）">
             <div className="overflow-x-auto">
@@ -2477,9 +2669,27 @@ git commit -m "feat(web): build the money-flow graph workbench page"
 
 `web/src/pages/Landing.tsx`：
 
+依「即時／維運型」落地頁結構：Hero（含服務即時狀態）→ 關鍵指標 → 運作方式 → CTA。
+
 ```tsx
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { checkHealth } from '../api/client'
 import { Panel } from '../components/Panel'
+
+const METRICS = [
+  { value: '0.806', label: '最佳模型 F1', note: 'Random Forest，illicit 類別' },
+  { value: '0.795', label: 'PR-AUC', note: '遵守官方時間切分，無資料洩漏' },
+  { value: '203k', label: 'Elliptic 節點數', note: '公開比特幣交易圖基準' },
+  { value: '4', label: '洗錢圖樣規則', note: '扇入／分散／集散／剝洋蔥' },
+]
+
+const FLOW = [
+  { stage: '資料層', detail: 'Elliptic 203k 節點 BTC 交易圖／TronGrid TRC-20 USDT 2-hop 圖' },
+  { stage: '分析層', detail: 'SNA 指標、Louvain 社群偵測、詐騙圖樣規則' },
+  { stage: '模型層', detail: 'GCN／GraphSAGE（PyTorch Geometric）、Random Forest 基線' },
+  { stage: '解釋層', detail: '風險證據產生器、出金審查引擎、STR 草稿' },
+]
 
 const PILLARS = [
   {
@@ -2496,18 +2706,39 @@ const PILLARS = [
   },
 ]
 
-const FLOW = [
-  { stage: '資料層', detail: 'Elliptic 203k 節點 BTC 交易圖／TronGrid TRC-20 USDT 2-hop 圖' },
-  { stage: '分析層', detail: 'SNA 指標、Louvain 社群偵測、詐騙圖樣規則' },
-  { stage: '模型層', detail: 'GCN／GraphSAGE（PyTorch Geometric）、Random Forest 基線' },
-  { stage: '解釋層', detail: '風險證據產生器、出金審查引擎、STR 草稿' },
-]
+function ServiceStatus() {
+  const [online, setOnline] = useState<boolean | null>(null)
+  useEffect(() => {
+    void checkHealth().then(setOnline)
+  }, [])
+
+  const color =
+    online === null
+      ? 'var(--color-muted)'
+      : online
+        ? 'var(--color-risk-low)'
+        : 'var(--color-risk-med)'
+  const text = online === null ? '檢查分析服務…' : online ? '分析服務運作中' : '分析服務未回應'
+
+  return (
+    <span className="inline-flex items-center gap-2 text-sm" style={{ color }}>
+      {/* 狀態不只靠顏色傳達，同時有文字說明 */}
+      <span
+        aria-hidden="true"
+        className="inline-block h-2 w-2 rounded-full"
+        style={{ backgroundColor: color }}
+      />
+      {text}
+    </span>
+  )
+}
 
 export default function Landing() {
   return (
-    <div className="space-y-10">
+    <div className="space-y-12">
       <section className="py-8">
-        <h1 className="text-4xl font-semibold leading-tight">
+        <ServiceStatus />
+        <h1 className="mt-4 text-4xl font-semibold leading-tight">
           鏈鏡 <span className="text-muted">ChainLens</span>
         </h1>
         <p className="mt-3 text-xl text-muted">基於社會網路分析之虛擬資產詐騙金流偵測平台</p>
@@ -2519,33 +2750,63 @@ export default function Landing() {
           <Link to="/screening" className="rounded bg-ink px-5 py-2 font-semibold text-base">
             看 50 萬 USDT 攔阻 Demo
           </Link>
-          <Link to="/research" className="rounded border border-line px-5 py-2">
-            讀研究成果
+          <Link to="/workbench" className="rounded border border-line px-5 py-2">
+            自己試查一個地址
           </Link>
         </div>
       </section>
 
-      <section className="grid gap-5 md:grid-cols-3">
-        {PILLARS.map((pillar) => (
-          <Panel key={pillar.title} title={pillar.title}>
-            <p className="text-sm leading-relaxed text-muted">{pillar.body}</p>
-          </Panel>
-        ))}
+      <section>
+        <h2 className="mb-4 text-sm text-muted">關鍵指標</h2>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {METRICS.map((metric) => (
+            <Panel key={metric.label}>
+              <div className="tabular text-3xl font-semibold">{metric.value}</div>
+              <div className="mt-1 text-sm">{metric.label}</div>
+              <div className="mt-1 text-xs text-muted">{metric.note}</div>
+            </Panel>
+          ))}
+        </div>
       </section>
 
-      <Panel title="系統架構">
-        <ol className="space-y-3">
-          {FLOW.map((step, index) => (
-            <li key={step.stage} className="flex gap-4">
-              <span className="tabular w-6 shrink-0 text-muted">{index + 1}</span>
-              <div>
-                <div className="font-semibold">{step.stage}</div>
-                <div className="text-sm text-muted">{step.detail}</div>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </Panel>
+      <section>
+        <h2 className="mb-4 text-sm text-muted">運作方式</h2>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Panel title="四層架構">
+            <ol className="space-y-3">
+              {FLOW.map((step, index) => (
+                <li key={step.stage} className="flex gap-4">
+                  <span className="tabular w-6 shrink-0 text-muted">{index + 1}</span>
+                  <div>
+                    <div className="font-semibold">{step.stage}</div>
+                    <div className="text-sm text-muted">{step.detail}</div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </Panel>
+          <div className="space-y-5">
+            {PILLARS.map((pillar) => (
+              <Panel key={pillar.title} title={pillar.title}>
+                <p className="text-sm leading-relaxed text-muted">{pillar.body}</p>
+              </Panel>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-line bg-panel p-8 text-center">
+        <h2 className="text-xl font-semibold">看它攔下一筆黑名單攔不住的出金</h2>
+        <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted">
+          目標地址從未被通報、自身結構分數只有 0.33。真正攔下它的是上游二階的資金關聯。
+        </p>
+        <Link
+          to="/screening"
+          className="mt-6 inline-block rounded bg-ink px-6 py-2.5 font-semibold text-base"
+        >
+          執行出金審查 Demo
+        </Link>
+      </section>
     </div>
   )
 }
@@ -2804,9 +3065,19 @@ git commit -m "test(web): add Playwright smoke tests and deployment docs"
 
 全部任務完成後，下列每一項都必須實際跑過並看到預期輸出，才能宣稱完成：
 
-- [ ] `.venv/Scripts/python.exe -m pytest -q` → 86 passed
+- [ ] `.venv/Scripts/python.exe -m pytest -q` → 89 passed
 - [ ] `.venv/Scripts/python.exe -m ruff check chainlens tests` → All checks passed!
 - [ ] `cd web && npm run typecheck && npm test && npm run build` → 全過
 - [ ] `cd web && npm run e2e` → 3 passed
 - [ ] 網站部署後，實際點過四個頁面：首頁、出金審查（跑完五步）、工作台（範例圖與真實地址各一次）、研究成果
 - [ ] 把瀏覽器開發者工具的網路面板關掉重整一次，確認首頁在 API 冷啟動期間仍立即顯示內容
+
+**UI／UX 交付前檢查**
+
+- [ ] 用鍵盤（只用 Tab 與 Enter）走完出金審查全流程，每一步的焦點都看得見
+- [ ] 375px 寬檢視四個頁面，沒有水平捲動；表格在自己的容器內橫向捲動
+- [ ] 開啟系統的「減少動態效果」後重整，動畫確實停止
+- [ ] 沒有任何狀態只靠顏色傳達（風險等級、服務狀態、導覽位置皆有文字或字重）
+- [ ] 圖譜的文字替代存在且正確：`/screening` 有關聯證據鏈、`/workbench` 有鄰接表
+- [ ] 沒有 emoji 被當成圖示使用
+- [ ] 用 795 節點等級的真實地址查一次，確認截斷提示出現且數字正確
