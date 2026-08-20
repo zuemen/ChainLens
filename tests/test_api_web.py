@@ -118,9 +118,11 @@ def test_graph_tron_failure_returns_502_not_a_silent_fallback(
         raise httpx.ConnectError("network down")
 
     monkeypatch.setattr(api_main.tron, "fetch_two_hop_graph", boom)
+    monkeypatch.setenv("CHAINLENS_API_KEY", "secret-key")
     response = client.post(
         "/graph",
         json={"mode": "tron", "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"},
+        headers={"X-API-Key": "secret-key"},
     )
     assert response.status_code == 502
     assert "TScamCollector001" not in response.text
@@ -134,14 +136,48 @@ def test_graph_tron_empty_result_returns_404(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(
         api_main.tron, "fetch_two_hop_graph", lambda *a, **k: nx.DiGraph()
     )
+    monkeypatch.setenv("CHAINLENS_API_KEY", "secret-key")
     response = client.post(
         "/graph",
         json={"mode": "tron", "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"},
+        headers={"X-API-Key": "secret-key"},
     )
     assert response.status_code == 404
     assert "查無 USDT 轉帳" in response.json()["detail"]
 
 
+def test_graph_tron_live_fetch_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """未設定金鑰時，/graph 的 tron 實抓路徑必須回 503 而非照打 TronGrid。"""
+    from chainlens.api import main as api_main
+
+    def must_not_be_called(*args: object, **kwargs: object) -> None:
+        raise AssertionError("未授權就不該呼叫 TronGrid")
+
+    monkeypatch.delenv("CHAINLENS_API_KEY", raising=False)
+    monkeypatch.setattr(api_main.tron, "fetch_two_hop_graph", must_not_be_called)
+    response = client.post(
+        "/graph",
+        json={"mode": "tron", "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"},
+    )
+    assert response.status_code == 503
+
+
 def test_graph_rejects_unknown_mode() -> None:
     response = client.post("/graph", json={"mode": "elliptic"})
     assert response.status_code == 422
+
+
+def test_rate_limit_returns_429_when_exceeded(monkeypatch: pytest.MonkeyPatch) -> None:
+    """公開端點必須有每 IP 限流，避免被拿來打成阻斷服務。"""
+    from collections import defaultdict, deque
+
+    from chainlens.api import main as api_main
+
+    monkeypatch.setattr(api_main, "_RATE_LIMIT", 2)
+    monkeypatch.setattr(api_main, "_rate_hits", defaultdict(deque))
+    body = {"mode": "example"}
+    assert client.post("/graph", json=body).status_code == 200
+    assert client.post("/graph", json=body).status_code == 200
+    third = client.post("/graph", json=body)
+    assert third.status_code == 429
+    assert "過於頻繁" in third.json()["detail"]

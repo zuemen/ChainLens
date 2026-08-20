@@ -15,13 +15,16 @@ from __future__ import annotations
 
 import os
 import secrets
+import threading
+import time
+from collections import defaultdict, deque
 from pathlib import Path
 from typing import Any, Literal
 
 import httpx
 import networkx as nx
 from dotenv import load_dotenv
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel, Field, model_validator
@@ -41,7 +44,7 @@ app = FastAPI(
 
 
 def _cors_origins() -> list[str]:
-    """允許來源清單；未設定環境變數時全開。"""
+    """允許來源清單；未設定環境變數時全開（本 API 為公開唯讀 demo）。"""
     raw = os.getenv("CHAINLENS_CORS_ORIGINS", "*")
     origins = [origin.strip() for origin in raw.split(",") if origin.strip()]
     return origins or ["*"]
@@ -63,11 +66,58 @@ RAW_DIR = Path("data/raw")
 _elliptic_cache: dict[str, tuple[nx.DiGraph, PipelineResult]] = {}
 
 
-def _check_api_key(x_api_key: str | None) -> None:
-    """設定 CHAINLENS_API_KEY 環境變數時，要求請求帶相同的 X-API-Key 標頭。"""
+def _check_api_key(x_api_key: str | None, *, required: bool = False) -> None:
+    """驗證 X-API-Key。
+
+    - 設定 CHAINLENS_API_KEY 時，一律要求請求帶相同的 X-API-Key 標頭。
+    - required=True（會動用伺服器端第三方額度或重運算的路徑）時，就算沒設
+      CHAINLENS_API_KEY 也直接拒絕：fail-closed，避免忘記設定就等於開放。
+    """
     expected = os.getenv("CHAINLENS_API_KEY")
-    if expected and not (x_api_key and secrets.compare_digest(x_api_key, expected)):
+    if not expected:
+        if required:
+            raise HTTPException(
+                status_code=503,
+                detail="此端點需要 CHAINLENS_API_KEY，伺服器未設定故停用",
+            )
+        return
+    if not (x_api_key and secrets.compare_digest(x_api_key, expected)):
         raise HTTPException(status_code=401, detail="X-API-Key 缺少或不正確")
+
+
+# ── 每 IP 速率限制 ────────────────────────────────────────────────────────────
+# /screen、/graph、/score 每次請求都要跑一輪 SNA 管線（tron 模式還會呼叫
+# TronGrid 消耗伺服器端的第三方 API 額度），公開端點若不限流很容易被拿來
+# 打成阻斷服務或盜刷額度。這裡用行程內的滑動視窗，不額外引入依賴。
+_RATE_LIMIT = int(os.getenv("CHAINLENS_RATE_LIMIT", "30"))  # 每視窗允許次數
+_RATE_WINDOW = int(os.getenv("CHAINLENS_RATE_WINDOW_SECONDS", "60"))
+_rate_hits: dict[str, deque[float]] = defaultdict(deque)
+_rate_lock = threading.Lock()
+
+
+def _client_key(request: Request) -> str:
+    """取用戶端識別。反向代理後方以 X-Forwarded-For 的第一段為準。"""
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _rate_limit(request: Request) -> None:
+    if _RATE_LIMIT <= 0:  # 設為 0 或負數即停用（本機測試用）
+        return
+    key = _client_key(request)
+    now = time.monotonic()
+    with _rate_lock:
+        hits = _rate_hits[key]
+        while hits and now - hits[0] > _RATE_WINDOW:
+            hits.popleft()
+        if len(hits) >= _RATE_LIMIT:
+            raise HTTPException(
+                status_code=429,
+                detail=f"請求過於頻繁，請於 {_RATE_WINDOW} 秒後再試",
+            )
+        hits.append(now)
 
 
 class ScoreRequest(BaseModel):
@@ -135,9 +185,14 @@ def _evidences_for(
 
 
 @app.post("/screen")
-def screen(req: ScreenRequest, x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+def screen(
+    req: ScreenRequest,
+    request: Request,
+    x_api_key: str | None = Header(default=None),
+) -> dict[str, Any]:
     """出金審查：回傳決策、關聯證據鏈、金流圖譜與 STR 草稿。"""
     _check_api_key(x_api_key)
+    _rate_limit(request)
     allowed = {scenario.WITHDRAWAL_TARGET, scenario.NORMAL_TARGET}
     if req.target not in allowed:
         raise HTTPException(status_code=400, detail="target 需為劇本情境中的出金地址")
@@ -163,9 +218,14 @@ def screen(req: ScreenRequest, x_api_key: str | None = Header(default=None)) -> 
 
 
 @app.post("/graph")
-def graph(req: GraphRequest, x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+def graph(
+    req: GraphRequest,
+    request: Request,
+    x_api_key: str | None = Header(default=None),
+) -> dict[str, Any]:
     """工作台圖譜：回傳節點、邊、meta 與依風險排序的 SNA 指標表。"""
     _check_api_key(x_api_key)
+    _rate_limit(request)
 
     if req.mode == "example":
         g = tron.load_example_graph()
@@ -177,6 +237,7 @@ def graph(req: GraphRequest, x_api_key: str | None = Header(default=None)) -> di
                 status_code=400,
                 detail="address 需為合法 TRON 主網地址（T 開頭 Base58 34 字元）",
             )
+        _check_api_key(x_api_key, required=True)
         try:
             g = tron.fetch_two_hop_graph(req.address, api_key=os.getenv("TRONGRID_API_KEY"))
         except httpx.HTTPError as exc:
@@ -195,7 +256,7 @@ def graph(req: GraphRequest, x_api_key: str | None = Header(default=None)) -> di
     return payload
 
 
-def _build_graph(req: ScoreRequest) -> tuple[nx.DiGraph, Any]:
+def _build_graph(req: ScoreRequest, x_api_key: str | None = None) -> tuple[nx.DiGraph, Any]:
     """依請求模式建圖，回傳（圖, 目標節點）。"""
     mode = req.mode
     if mode == "auto":
@@ -213,6 +274,9 @@ def _build_graph(req: ScoreRequest) -> tuple[nx.DiGraph, Any]:
             raise HTTPException(
                 status_code=400, detail="address 需為合法 TRON 主網地址（T 開頭 Base58 34 字元）"
             )
+        # 這行會實際呼叫 TronGrid 並消耗伺服器端的第三方 API 額度：
+        # 未設定 CHAINLENS_API_KEY 時直接停用，避免公開端點被拿來盜刷額度。
+        _check_api_key(x_api_key, required=True)
         try:
             g = tron.fetch_two_hop_graph(req.address, api_key=os.getenv("TRONGRID_API_KEY"))
         except httpx.HTTPError as exc:
@@ -252,10 +316,15 @@ def _elliptic_graph_and_pipeline() -> tuple[nx.DiGraph, PipelineResult]:
 
 
 @app.post("/score")
-def score(req: ScoreRequest, x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+def score(
+    req: ScoreRequest,
+    request: Request,
+    x_api_key: str | None = Header(default=None),
+) -> dict[str, Any]:
     """對目標地址/交易評分，回傳 risk_score、label 與結構證據。"""
     _check_api_key(x_api_key)
-    g, target = _build_graph(req)
+    _rate_limit(request)
+    g, target = _build_graph(req, x_api_key)
     if req.mode == "elliptic" or (req.mode == "auto" and not req.address):
         _, pipeline = _elliptic_graph_and_pipeline()  # 命中快取，不重算
         sna_df, partition, risk_ratios, motif_hits = pipeline

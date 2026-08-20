@@ -67,9 +67,12 @@ def test_tron_fetch_failure_returns_502_not_example_graph(
         raise httpx.ConnectError("network down")
 
     monkeypatch.setattr(api_main.tron, "fetch_two_hop_graph", boom)
+    # tron 實抓路徑會消耗伺服器端的 TronGrid 額度，依規則必須帶 X-API-Key
+    monkeypatch.setenv("CHAINLENS_API_KEY", "secret-key")
     response = client.post(
         "/score",
         json={"address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", "mode": "tron"},
+        headers={"X-API-Key": "secret-key"},
     )
     assert response.status_code == 502
     assert "TScamCollector001" not in response.text
@@ -81,6 +84,22 @@ def test_api_key_enforced_when_configured(monkeypatch: pytest.MonkeyPatch) -> No
     assert client.post("/score", json=body).status_code == 401
     ok = client.post("/score", json=body, headers={"X-API-Key": "secret-key"})
     assert ok.status_code == 200
+
+
+def test_tron_live_fetch_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """未設定 CHAINLENS_API_KEY 時，會動用 TronGrid 額度的路徑必須停用（fail-closed）。"""
+    from chainlens.api import main as api_main
+
+    def must_not_be_called(*args: object, **kwargs: object) -> None:
+        raise AssertionError("未授權就不該呼叫 TronGrid")
+
+    monkeypatch.delenv("CHAINLENS_API_KEY", raising=False)
+    monkeypatch.setattr(api_main.tron, "fetch_two_hop_graph", must_not_be_called)
+    response = client.post(
+        "/score",
+        json={"address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", "mode": "tron"},
+    )
+    assert response.status_code == 503
 
 
 def test_root_redirects_to_docs() -> None:

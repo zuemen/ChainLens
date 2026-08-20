@@ -1,7 +1,13 @@
 """共用 fixture：小型合成詐騙圖，含三種圖樣與一小群正常節點。"""
 
+import os
+
 import networkx as nx
 import pytest
+
+# 測試全程共用同一個 TestClient 來源 IP，若套用正式的每 IP 限流會互相干擾，
+# 因此在測試中停用（0 = 不限流）。限流本身另有專屬測試涵蓋。
+os.environ.setdefault("CHAINLENS_RATE_LIMIT", "0")
 
 
 @pytest.fixture
