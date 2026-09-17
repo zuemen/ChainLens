@@ -144,7 +144,7 @@ def render_screening_demo() -> None:
 
     # 圖譜：高亮最近風險節點 → 目標之資金路徑
     sna_df, partition, risk_ratios, motif_hits = run_pipeline(g)
-    hit_nodes = {n for hit in motif_hits for n in hit.nodes}
+    hit_nodes = {n for hit in motif_hits for n in hit.risky_nodes or [hit.center]}
     evidences = {
         n: generate_evidence(n, g, sna_df, partition, risk_ratios, motif_hits)
         for n in g.nodes()
@@ -185,7 +185,7 @@ def render_workbench() -> None:
         st.warning("TronGrid 抓取失敗（無網路或限速），已改用內建範例圖。")
 
     sna_df, partition, risk_ratios, motif_hits = run_pipeline(g)
-    hit_nodes = {n for hit in motif_hits for n in hit.nodes} | {h.center for h in motif_hits}
+    hit_nodes = {n for hit in motif_hits for n in hit.risky_nodes or [hit.center]}
     evidences = {
         n: generate_evidence(n, g, sna_df, partition, risk_ratios, motif_hits)
         for n in g.nodes()

@@ -21,7 +21,7 @@ describe('SCREENING_SNAPSHOT 形狀驗證', () => {
   })
 
   it('關聯證據鏈與圖譜節點/邊數與演示口白一致', () => {
-    expect(SCREENING_SNAPSHOT.associations.length).toBe(6)
+    expect(SCREENING_SNAPSHOT.associations.length).toBe(13)
     expect(SCREENING_SNAPSHOT.graph.nodes.length).toBe(53)
     expect(SCREENING_SNAPSHOT.graph.edges.length).toBe(63)
     expect(SCREENING_SNAPSHOT.highlight_path).toEqual(['TAggregator01', 'TMule03', 'TOtcOut01'])

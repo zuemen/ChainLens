@@ -112,3 +112,37 @@ def test_screening_on_graph_without_motifs_passes():
     result = screen_withdrawal(g, "C", 1_000)
     assert result["decision"] == "pass"
     assert result["association_score"] == 0.0
+
+
+def _scenario_labels() -> tuple[nx.DiGraph, dict[str, str], dict[str, list[str]]]:
+    from chainlens.explain.evidence import generate_evidence, run_pipeline
+
+    g = load_withdrawal_scenario()
+    pipeline = run_pipeline(g)
+    labels = {n: generate_evidence(n, g, *pipeline)["label"] for n in g.nodes()}
+    roles: dict[str, list[str]] = {}
+    for n, d in g.nodes(data=True):
+        roles.setdefault(d.get("role"), []).append(n)
+    return g, labels, roles
+
+
+def test_laundering_executors_not_whitewashed():
+    """車手與剝洋蔥中繼是洗錢鏈執行層，不得因非圖樣中心而被判低風險。"""
+    _, labels, roles = _scenario_labels()
+    for node in roles["mule"] + roles["peel"]:
+        assert labels[node] != "low", f"{node} 被漂白為低風險"
+
+
+def test_victims_and_normal_users_stay_low():
+    """修正執行層後，被害人與正常用戶仍須維持低風險（不得連坐）。"""
+    _, labels, roles = _scenario_labels()
+    for node in roles["victim"] + roles["normal"]:
+        assert labels[node] == "low", f"{node} 被誤判為 {labels[node]}"
+    assert labels["TAggregator01"] == "high"
+
+
+def test_withdrawal_target_itself_hits_no_motif():
+    """招牌情境前提：出金目標本身不命中任何圖樣，只能靠關聯追溯攔下。"""
+    g = load_withdrawal_scenario()
+    hits = detect_all(g)
+    assert all(WITHDRAWAL_TARGET not in (h.risky_nodes or [h.center]) for h in hits)

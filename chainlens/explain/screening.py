@@ -44,6 +44,13 @@ class Association:
     distance: int  # 資金路徑階數（邊數）
     path: list[Any] = field(default_factory=list)  # 風險節點 → 目標之資金流路徑
     motifs: list[str] = field(default_factory=list)  # 該風險節點命中之圖樣
+    # True：風險節點為圖樣中心（集資主錢包等）；False：僅為圖樣下游執行層（車手、剝洋蔥中繼），
+    # 其風險繼承自上游中心，傳導時多衰減一階，避免「直接收到車手轉帳」即判滿分
+    via_center: bool = True
+
+    @property
+    def effective_distance(self) -> int:
+        return self.distance if self.via_center else self.distance + 1
 
 
 def find_risky_associations(
@@ -58,8 +65,10 @@ def find_risky_associations(
     再對每個命中節點回溯最短路徑。回傳依距離排序。
     """
     center_motifs: dict[Any, list[str]] = {}
+    centers = {hit.center for hit in motif_hits}
     for hit in motif_hits:
-        center_motifs.setdefault(hit.center, []).append(hit.motif)
+        for member in hit.risky_nodes or [hit.center]:
+            center_motifs.setdefault(member, []).append(hit.motif)
     if not center_motifs or target not in g:
         return []
 
@@ -71,18 +80,26 @@ def find_risky_associations(
             distance=dist,
             path=list(reversed(nx.shortest_path(reverse, target, node))),
             motifs=sorted(set(center_motifs[node])),
+            via_center=node in centers,
         )
         for node, dist in lengths.items()
         if node in center_motifs and dist > 0
     ]
-    return sorted(associations, key=lambda a: (a.distance, str(a.risky_node)))
+    # 依風險貢獻排序；同貢獻時圖樣中心優先（其路徑涵蓋執行層，敘事較完整）
+    return sorted(
+        associations,
+        key=lambda a: (a.effective_distance, not a.via_center, a.distance, str(a.risky_node)),
+    )
 
 
 def association_score(associations: list[Association], decay: float = DEFAULT_DECAY) -> float:
-    """關聯風險分數 = max(decay^(距離-1))；一階關聯 = 1.0，隨距離幾何衰減。"""
+    """關聯風險分數 = max(decay^(有效距離-1))；與圖樣中心一階關聯 = 1.0，隨距離幾何衰減。
+
+    有效距離：圖樣中心取實際階數；下游執行層（非中心）多計一階。
+    """
     if not associations:
         return 0.0
-    return max(decay ** (a.distance - 1) for a in associations)
+    return max(decay ** (a.effective_distance - 1) for a in associations)
 
 
 def _format_ts(ts: float | None) -> str:

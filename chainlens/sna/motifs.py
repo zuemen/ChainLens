@@ -20,6 +20,9 @@ class MotifHit:
     center: Any
     nodes: list[Any] = field(default_factory=list)
     description_zh: str = ""
+    # 承擔風險的成員（計分與關聯追溯用）；nodes 則是參與圖樣的全部地址。
+    # 兩者分開是因為 fan-in／集散的資金來源是被害人，而 fan-out 下游與剝洋蔥鏈是洗錢執行層。
+    risky_nodes: list[Any] = field(default_factory=list)
 
 
 def _max_distinct_in_window(
@@ -55,6 +58,7 @@ def detect_fan_in(
                     motif="fan_in",
                     center=node,
                     nodes=[node, *sources],
+                    risky_nodes=[node],
                     description_zh=(
                         f"節點 {node} 於短時間窗內接收來自 {count} 個不同地址的資金匯入，"
                         "符合集資扇入（fan-in）圖樣。"
@@ -81,6 +85,7 @@ def detect_fan_out(
                     motif="fan_out",
                     center=node,
                     nodes=[node, *targets],
+                    risky_nodes=[node, *targets],
                     description_zh=(
                         f"節點 {node} 於短時間窗內快速拆分資金至 {count} 個不同地址，"
                         "符合快速分散（fan-out）圖樣。"
@@ -133,6 +138,7 @@ def detect_peeling_chain(
             motif="peeling_chain",
             center=chain[0],
             nodes=list(chain),
+            risky_nodes=list(chain),
             description_zh=(
                 f"自節點 {chain[0]} 起連續 {len(chain) - 1} 跳，每跳保留大額轉出並剝離小額，"
                 "符合剝洋蔥鏈（peeling chain）圖樣。"
@@ -166,12 +172,15 @@ def detect_gather_scatter(
         out_ts = [ts for ts, _ in out_events if ts is not None]
         if in_ts and out_ts and min(in_ts) > max(out_ts):
             continue  # 全部流出都早於任何流入，不構成先集資後分散
-        peers = sorted({p for _, p in in_events} | {p for _, p in out_events}, key=str)
+        in_peers = {p for _, p in in_events}
+        out_peers = {p for _, p in out_events}
+        peers = sorted(in_peers | out_peers, key=str)
         hits.append(
             MotifHit(
                 motif="gather_scatter",
                 center=node,
                 nodes=[node, *peers],
+                risky_nodes=[node, *sorted(out_peers, key=str)],
                 description_zh=(
                     f"節點 {node} 先自 {in_count} 個來源集中資金、再拆分至 "
                     f"{out_count} 個地址，符合集散（gather-scatter/smurfing）圖樣。"

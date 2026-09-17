@@ -21,7 +21,9 @@ def test_screen_blocks_the_scenario_target() -> None:
     assert body["association_score"] == pytest.approx(0.6, abs=1e-4)
     assert body["decision"] == "block"
     assert body["decision_zh"] == "暫緩出金並啟動人工審查"
-    assert len(body["associations"]) == 6
+    # 6 個圖樣中心＋7 個下游執行層（車手、剝洋蔥中繼）；貢獻最大者為集資主錢包
+    assert len(body["associations"]) == 13
+    assert body["associations"][0]["risky_node"] == "TAggregator01"
     assert body["str_draft_zh"]
     assert body["evidence"]["motif_hits"] == []  # 自身不命中任何圖樣，這是整個 Demo 的論點
 

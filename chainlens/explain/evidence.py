@@ -58,9 +58,9 @@ def generate_evidence(
     }
     comm = partition.get(node, -1)
     risk_ratio = float(risk_ratios.get(comm, 0.0))
-    # 只計中心節點：fan-in 的 nodes 含所有來源地址（即被害人），
-    # 周邊成員若同權計分，打款給詐騙地址的被害人會被連坐升級為中風險
-    node_hits = [h for h in motif_hits if h.center == node]
+    # 只計「承擔風險」的成員：fan-in 的 nodes 含所有來源地址（即被害人），不得連坐；
+    # 但 fan-out 下游車手與剝洋蔥鏈中繼是洗錢執行層，只計中心會把它們漂白成低風險
+    node_hits = [h for h in motif_hits if node in (h.risky_nodes or [h.center])]
 
     centrality_mean = sum(percentiles.values()) / len(percentiles) / 100
     rule_score = 0.5 * (1.0 if node_hits else 0.0) + 0.3 * centrality_mean + 0.2 * risk_ratio
