@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ApiError, postScreen } from '../api/client'
 import { SCREENING_SNAPSHOT } from '../api/snapshot'
 import type { ScreenResult } from '../api/types'
@@ -6,18 +7,15 @@ import { DecisionCard } from '../components/DecisionCard'
 import { ErrorNotice } from '../components/ErrorNotice'
 import { Panel } from '../components/Panel'
 import { GraphView } from '../graph/GraphView'
+import { MOTIF_ZH } from '../graph/motifs'
+
+/** 證據鏈預設只列最接近的幾條，其餘收合，讓圖譜與 STR 草稿不必捲很久才看得到 */
+const EVIDENCE_PREVIEW = 4
 
 const TARGETS = [
   { value: 'TOtcOut01', label: 'TOtcOut01（本案：未通報之 OTC 收款地址）' },
   { value: 'TNormalUser01', label: 'TNormalUser01（對照組：正常用戶地址）' },
 ]
-
-const MOTIF_ZH: Record<string, string> = {
-  fan_in: '集資扇入',
-  fan_out: '快速分散',
-  gather_scatter: '集散（smurfing）',
-  peeling_chain: '剝洋蔥鏈',
-}
 
 export default function Screening() {
   const [target, setTarget] = useState(TARGETS[0].value)
@@ -26,6 +24,8 @@ export default function Screening() {
   const [offline, setOffline] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [showAllEvidence, setShowAllEvidence] = useState(false)
+  const [searchParams] = useSearchParams()
 
   async function run() {
     setLoading(true)
@@ -55,6 +55,13 @@ export default function Screening() {
       setLoading(false)
     }
   }
+
+  // 從首頁「親手執行一次」進來時（?auto=1）直接跑一次，評審不必再找按鈕
+  useEffect(() => {
+    if (searchParams.get('auto') === '1') void run()
+    // 只在進頁時觸發一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function downloadStr() {
     if (!result?.str_draft_zh) return
@@ -126,10 +133,34 @@ export default function Screening() {
         <>
           <DecisionCard result={result} />
 
+          <Panel title="金流圖譜（橘色路徑＝風險資金流向出金地址；金色＝審查目標）">
+            <GraphView
+              payload={result.graph}
+              highlightPath={result.highlight_path}
+              focus={result.target}
+              layout="dagre"
+              scheme="role"
+            />
+          </Panel>
+
           {result.associations.length > 0 && (
-            <Panel title="資金關聯證據鏈">
+            <Panel
+              title={`資金關聯證據鏈（共 ${result.associations.length} 條）`}
+              actions={
+                result.associations.length > EVIDENCE_PREVIEW && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllEvidence((value) => !value)}
+                    aria-expanded={showAllEvidence}
+                    className="border border-line-strong px-3 py-1 text-sm hover:bg-panel-raised"
+                  >
+                    {showAllEvidence ? '只看最接近的幾條' : '顯示全部'}
+                  </button>
+                )
+              }
+            >
               <ul className="grid gap-x-10 gap-y-4 text-sm md:grid-cols-2">
-                {result.associations.map((association) => (
+                {(showAllEvidence ? result.associations : result.associations.slice(0, EVIDENCE_PREVIEW)).map((association) => (
                   <li key={association.risky_node} className="border-l-2 border-line pl-4">
                     <div className="tabular">
                       {association.risky_node}
@@ -147,16 +178,6 @@ export default function Screening() {
               </ul>
             </Panel>
           )}
-
-          <Panel title="金流圖譜（橘色路徑＝風險資金流向出金地址；金色＝審查目標）">
-            <GraphView
-              payload={result.graph}
-              highlightPath={result.highlight_path}
-              focus={result.target}
-              layout="dagre"
-              scheme="role"
-            />
-          </Panel>
 
           {result.str_draft_zh && (
             <Panel
@@ -177,11 +198,12 @@ export default function Screening() {
             </Panel>
           )}
 
-          <Panel title="結構證據 JSON（稽核軌跡）">
-            <pre className="tabular max-h-96 overflow-auto text-xs text-muted">
+          <details className="border border-line bg-panel p-6">
+            <summary className="cursor-pointer font-serif text-lg font-bold">結構證據 JSON（API 原始回傳）</summary>
+            <pre className="tabular mt-4 max-h-96 overflow-auto text-xs text-muted">
               {JSON.stringify(result.evidence, null, 2)}
             </pre>
-          </Panel>
+          </details>
         </>
       )}
     </div>

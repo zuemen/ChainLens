@@ -33,6 +33,17 @@
   --color-focus: #f1c40f;
   --color-path: #f39c12;
 
+  /* 三級處置刻度的區段底色（非文字） */
+  --color-zone-pass: #B9CFBF;
+  --color-zone-review: #E6C9A1;
+  --color-zone-block: #E3A89C;
+
+  /* 案件重演舞台（深色底上的圖形，非文字門檻 3:1） */
+  --color-node-idle: #8E887A;     /* 5.35:1 於 dark */
+  --color-node-victim: #D9B45B;   /* 9.55:1 */
+  --color-edge: #4A4740;
+  --color-pass-on-dark: #6FCF97;  /* 9.92:1 — 「放行」字樣 */
+
   --color-ring: #B23F0E;         /* 鍵盤焦點環 */
 
   --font-sans: "Noto Sans TC", system-ui, sans-serif;
@@ -91,43 +102,187 @@ select {
   outline-color: var(--color-signal);
 }
 
-/* ── 首頁主視覺：資金路徑動畫 ─────────────────────────── */
-.flow-path {
-  stroke-dasharray: 620;
-  stroke-dashoffset: 620;
-  animation: flow-draw 2.4s cubic-bezier(0.6, 0, 0.2, 1) 0.6s forwards;
+/* ── 案件重演 ─────────────────────────────────────── */
+.replay-stage {
+  background:
+    radial-gradient(ellipse at 78% 55%, rgb(228 87 31 / 0.1), transparent 55%),
+    var(--color-dark);
 }
-.flow-node {
+.replay-edge {
+  fill: none;
+  stroke: var(--color-edge);
+  stroke-width: 1.6;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
   opacity: 0;
-  animation: flow-pop 0.5s ease-out forwards;
+  transition: stroke-dashoffset 0.9s ease-out, opacity 0.3s, stroke 0.5s, stroke-width 0.5s;
 }
-.flow-target {
-  transform-origin: 920px 620px;
-  animation: flow-pulse 2.2s ease-in-out 3s infinite;
+.replay-edge.is-upstream {
+  stroke-dashoffset: -1; /* 負值＝從終點（出金目標端）往起點長出來 */
 }
-@keyframes flow-draw {
-  to {
-    stroke-dashoffset: 0;
-  }
+.replay-edge.is-on {
+  stroke-dashoffset: 0;
+  opacity: 1;
 }
-@keyframes flow-pop {
+.replay-edge.is-path {
+  stroke: var(--color-signal);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+.replay-node {
+  fill: var(--color-node-idle);
+  opacity: 0;
+  transform: scale(0.3);
+  transition: opacity 0.5s, transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 1), fill 0.6s;
+}
+.replay-node.is-on {
+  opacity: 1;
+  transform: scale(1);
+}
+.replay-node.is-victim {
+  fill: var(--color-node-victim);
+}
+.replay-node.is-risky {
+  fill: var(--color-signal);
+}
+.replay-node.is-target {
+  fill: var(--color-dark);
+  stroke: var(--color-on-dark);
+  stroke-width: 5;
+}
+.replay-coin {
+  fill: var(--color-on-dark);
+}
+.replay-label text {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  fill: var(--color-on-dark-muted);
+}
+.replay-label text.is-strong {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  fill: var(--color-on-dark);
+}
+.replay-phase {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 900;
+  fill: var(--color-on-dark);
+  text-anchor: middle;
+}
+.replay-phase-rule {
+  stroke: var(--color-dark-line);
+  stroke-width: 2;
+}
+.replay-note {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  fill: var(--color-on-dark-muted);
+}
+.replay-fade {
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+.replay-fade.is-on {
+  opacity: 1;
+}
+.replay-stamp-box {
+  fill: var(--color-dark);
+  stroke-width: 3;
+}
+.replay-stamp-box.is-pass {
+  stroke: var(--color-pass-on-dark);
+}
+.replay-stamp-box.is-block {
+  stroke: var(--color-signal);
+}
+.replay-stamp {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 900;
+}
+.replay-stamp.is-pass {
+  fill: var(--color-pass-on-dark);
+}
+.replay-stamp.is-block {
+  fill: var(--color-signal);
+}
+.replay-score {
+  position: absolute;
+  left: 1.25rem;
+  bottom: 1.25rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: rgb(18 17 16 / 0.92);
+  border: 1px solid var(--color-dark-line);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.6s, transform 0.6s;
+  pointer-events: none;
+}
+.replay-score.is-on {
+  opacity: 1;
+  transform: none;
+}
+.replay-progress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--color-signal);
+  transform-origin: left;
+  animation: replay-progress linear forwards;
+}
+@keyframes replay-progress {
   from {
-    opacity: 0;
-    transform: scale(0.4);
+    transform: scaleX(0);
   }
   to {
-    opacity: 1;
-    transform: scale(1);
+    transform: scaleX(1);
   }
 }
-@keyframes flow-pulse {
-  0%,
-  100% {
-    transform: scale(1);
+@media (max-width: 767px) {
+  .replay-score {
+    position: static;
+    display: none;
+    justify-content: center;
+    border-width: 1px 0 0;
   }
-  50% {
-    transform: scale(1.25);
+  .replay-score.is-on {
+    display: flex;
   }
+}
+.replay-btn {
+  min-width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--color-on-dark-muted);
+  color: var(--color-on-dark);
+  font-weight: 700;
+}
+.replay-btn:hover:not(:disabled) {
+  border-color: var(--color-on-dark);
+  background: var(--color-dark-line);
+}
+.replay-btn:disabled {
+  opacity: 0.35;
+}
+.replay-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 9999px;
+  border: 2px solid var(--color-on-dark-muted);
+  padding: 0;
+}
+.replay-dot.is-done {
+  background: var(--color-on-dark-muted);
+}
+.replay-dot.is-on {
+  border-color: var(--color-signal);
+  background: var(--color-signal);
 }
 
 /* 區塊進場：只在首屏用一次，避免到處亂動 */
@@ -151,12 +306,11 @@ select {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-  .flow-path {
-    stroke-dashoffset: 0;
-  }
-  .flow-node,
   .reveal {
     opacity: 1;
     transform: none;
+  }
+  .replay-coin {
+    display: none;
   }
 }

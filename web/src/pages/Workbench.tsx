@@ -33,7 +33,12 @@ export default function Workbench() {
       setSource(mode === 'tron' ? { kind: 'tron', address } : { kind: 'example' })
       setSelected(null)
     } catch (err) {
-      setError(err instanceof ApiError ? err.detail : '載入失敗，請稍後再試。')
+      // 503＝伺服器未設定金鑰，即時鏈上查詢依設計停用（保護第三方 API 額度）；給訪客看得懂的說明
+      if (err instanceof ApiError && err.status === 503) {
+        setError('公開 Demo 站為保護第三方 API 額度，已停用即時鏈上查詢；內建範例圖可完整操作。自行部署並設定金鑰後即可查詢真實地址。')
+      } else {
+        setError(err instanceof ApiError ? err.detail : '載入失敗，請稍後再試。')
+      }
     } finally {
       setLoading(false)
     }

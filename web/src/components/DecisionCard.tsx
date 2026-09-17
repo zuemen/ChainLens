@@ -23,9 +23,9 @@ function RiskScale({ score, color }: { score: number; color: string }) {
   return (
     <div className="relative mt-7 h-12" aria-hidden="true">
       <div className="absolute inset-x-0 top-3 flex h-2">
-        <div className="w-[40%] bg-[#B9CFBF]" />
-        <div className="w-[30%] bg-[#E6C9A1]" />
-        <div className="w-[30%] bg-[#E3A89C]" />
+        <div className="w-[40%] bg-zone-pass" />
+        <div className="w-[30%] bg-zone-review" />
+        <div className="w-[30%] bg-zone-block" />
       </div>
       <div className="absolute top-0 h-8 w-1 -translate-x-1/2" style={{ left, backgroundColor: color }} />
       <div className="absolute top-7 -translate-x-1/2 text-xs text-muted" style={{ left: '20%' }}>放行</div>
