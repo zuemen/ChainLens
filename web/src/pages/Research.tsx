@@ -39,42 +39,51 @@ export default function Research() {
   const best = Math.max(...METRICS.map((row) => row.f1))
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-4xl font-black leading-tight">研究成果</h1>
-        <p className="mt-3 max-w-3xl text-lg leading-relaxed text-muted">
-          在國際公開的 Elliptic 比特幣資料集（203,769 筆交易節點）上，比較圖神經網路（GNN）與傳統模型偵測非法交易的能力。
+      <header className="border-b border-line pb-8">
+        <div className="kicker">模型研究</div>
+        <h1 className="mt-2 text-4xl font-black leading-tight text-brand md:text-5xl">圖神經網路，能不能抓到洗錢？</h1>
+        <p className="mt-4 max-w-3xl text-lg leading-relaxed text-muted">
+          我們在國際公開的 Elliptic 比特幣交易資料集（203,769 筆交易、官方時間切分）上，
+          實測圖神經網路（GNN）與傳統模型辨識非法交易的能力。以下先給結論，再說明方法與數據。
         </p>
-      </div>
+      </header>
 
-      <section className="grid gap-6 border-y-2 border-ink py-6 md:grid-cols-3">
-        <div>
-          <div className="kicker">結論 1</div>
-          <p className="mt-2 font-serif text-xl font-bold">Random Forest 最強（F1 0.806）</p>
-          <p className="mt-1 leading-relaxed text-muted">GNN 最佳為 GraphSAGE＋反向訊息傳遞（0.661），與國際文獻一致。</p>
-        </div>
-        <div>
-          <div className="kicker">結論 2</div>
-          <p className="mt-2 font-serif text-xl font-bold">手法一變，所有模型同時失效</p>
-          <p className="mt-1 leading-relaxed text-muted">第 43 期起三個模型的 F1 都掉到接近 0：靠歷史標註學出來的模型，追不上新手法。</p>
-        </div>
-        <div>
-          <div className="kicker">所以產品這樣設計</div>
-          <p className="mt-2 font-serif text-xl font-bold">即時審查靠圖樣＋路徑，不靠模型</p>
-          <p className="mt-1 leading-relaxed text-muted">
-            出金審查用洗錢圖樣規則與資金路徑風險傳導，不需標註資料；GNN 目前是離線研究基準，尚未接入即時審查。
-          </p>
-        </div>
+      <section aria-labelledby="summary-title" className="bg-brand p-8 text-white md:p-10">
+        <h2 id="summary-title" className="font-serif text-2xl font-bold">給決策者的三句話</h2>
+        <ol className="mt-6 grid gap-8 md:grid-cols-3">
+          <li>
+            <div className="font-serif text-5xl font-black text-gold-on-dark">1</div>
+            <p className="mt-3 text-xl font-bold leading-snug">模型可以抓到大部分非法交易</p>
+            <p className="mt-2 leading-relaxed text-on-dark-muted">
+              最佳的 Random Forest 抓出 72.5% 的非法交易，被它判為非法的，90.7% 確實是非法（F1 0.806）。圖神經網路最佳 0.661。
+            </p>
+          </li>
+          <li>
+            <div className="font-serif text-5xl font-black text-gold-on-dark">2</div>
+            <p className="mt-3 text-xl font-bold leading-snug">但犯罪手法一變，所有模型同時失效</p>
+            <p className="mt-2 leading-relaxed text-on-dark-muted">
+              測試期第 43 期起，三個模型的 F1 分數都跌到接近 0。靠歷史案例訓練的模型，追不上新手法。
+            </p>
+          </li>
+          <li>
+            <div className="font-serif text-5xl font-black text-gold-on-dark">3</div>
+            <p className="mt-3 text-xl font-bold leading-snug">所以即時審查不押寶模型</p>
+            <p className="mt-2 leading-relaxed text-on-dark-muted">
+              出金審查採可解釋的洗錢圖樣規則＋資金路徑追溯，不需歷史標註即可運作；模型作為研究基準，待臺灣在地資料建立後再接入。
+            </p>
+          </li>
+        </ol>
       </section>
 
-      <Panel title="圖神經網路在做什麼">
+      <Panel title="什麼是圖神經網路？">
         <GnnExplainer />
       </Panel>
 
-      <Panel title="整體成績：F1（illicit 類別，越長越好）">
+      <Panel title="整體成績：F1 分數（非法交易類別，越長越好）">
         <ul className="space-y-3">
           {[...METRICS].sort((a, b) => b.f1 - a.f1).map((row) => (
             <li key={`${row.model}-${row.features}`} className="grid grid-cols-[minmax(0,14rem)_1fr_3.5rem] items-center gap-4">
-              <span className={row.f1 === best ? 'font-bold text-signal-ink' : ''}>
+              <span className={row.f1 === best ? 'font-bold text-brand' : ''}>
                 {row.model}
                 {row.features.includes('SNA') && <span className="text-muted">（＋SNA，消融）</span>}
               </span>
@@ -83,17 +92,17 @@ export default function Research() {
                   className="block h-full"
                   style={{
                     width: `${row.f1 * 100}%`,
-                    backgroundColor: row.f1 === best ? 'var(--color-signal)' : 'var(--color-line-strong)',
+                    backgroundColor: row.f1 === best ? 'var(--color-brand)' : 'var(--color-line-strong)',
                   }}
                 />
               </span>
-              <span className={`tabular text-right ${row.f1 === best ? 'font-bold text-signal-ink' : ''}`}>{row.f1.toFixed(3)}</span>
+              <span className={`tabular text-right ${row.f1 === best ? 'font-bold text-brand' : ''}`}>{row.f1.toFixed(3)}</span>
             </li>
           ))}
         </ul>
       </Panel>
 
-      <Panel title="隨時間的表現：測試期逐期 F1">
+      <Panel title="關鍵發現：手法改變時，模型同時失效">
         <p className="mb-5 max-w-3xl leading-relaxed text-muted">
           測試期共 {RESEARCH_EVAL.test_nodes.toLocaleString('en-US')} 筆有標註交易，其中非法 {RESEARCH_EVAL.test_illicit.toLocaleString('en-US')} 筆。
           第 35–42 期 Random Forest 穩定在 0.78–0.97；第 43 期起，Weber et al.（2019）指出暗網市場關閉、犯罪行為型態改變，三個模型的 F1 同時跌到接近 0。
@@ -149,7 +158,7 @@ export default function Research() {
         </p>
       </Panel>
 
-      <Panel title="名詞說明">
+      <Panel title="名詞說明（給非技術讀者）">
         <dl className="grid gap-x-10 gap-y-4 md:grid-cols-2">
           {GLOSSARY.map((item) => (
             <div key={item.term}>

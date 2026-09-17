@@ -1,55 +1,61 @@
 @import "tailwindcss";
 
 @theme {
-  /* 表面：紙色卷宗。與決賽簡報同一套識別（紙／墨／證據橘） */
-  --color-base: #F3EFE6;
-  --color-panel: #FBF9F4;
-  --color-panel-raised: #FFFFFF;
+  /* 正式監理簡報風格：白底、深海軍藍、細金線；紅色只用於風險。對比值為實算 */
+  --color-base: #F5F6F8;
+  --color-panel: #FFFFFF;
+  --color-panel-raised: #EEF1F5;
 
   /* 邊框分兩階：裝飾線不受 3:1 規範，控制項邊界必須達標 */
-  --color-line: #CBC3B1;         /* 1.53:1 於 base — 僅供分隔線與面板外框 */
-  --color-line-strong: #7A7362;  /* 4.11:1 — 表單輸入框與控制項邊界 */
+  --color-line: #D6DBE2;         /* 1.29:1 — 僅供分隔線與面板外框 */
+  --color-line-strong: #7A8597;  /* 3.45:1 — 表單輸入框與控制項邊界 */
 
-  --color-ink: #17150F;          /* 15.90:1 於 base */
-  --color-muted: #5F594D;        /* 6.05:1 於 base、6.60:1 於 panel */
+  --color-ink: #0E1B2C;          /* 16.03:1 於 base */
+  --color-muted: #586579;        /* 5.47:1 於 base、5.91:1 於 panel */
+
+  /* 機構主色：深海軍藍（主按鈕、深色區塊、標題強調） */
+  --color-brand: #0B2A4A;        /* 13.45:1 於 base */
+  --color-brand-hover: #123E6B;
+  --color-gold: #85671B;         /* 4.91:1 — 章節編號與細線 */
+  --color-gold-on-dark: #D8B45A; /* 7.34:1 於 brand */
 
   /* 風險語意色：文字用，base 與 panel 兩種底色皆 ≥4.5:1 */
-  --color-risk-high: #B8231A;    /* 5.56 / 6.06 */
-  --color-risk-med: #8F5200;     /* 5.42 / 5.91 */
-  --color-risk-low: #1D6E46;     /* 5.43 / 5.92 */
+  --color-risk-high: #B42318;    /* 6.08 / 6.57 */
+  --color-risk-med: #8A5300;     /* 5.85 / 6.33 */
+  --color-risk-low: #1B6B45;     /* 6.00 / 6.49 */
 
-  /* 品牌強調：橘色只給資金路徑與關鍵數字 */
-  --color-signal: #E4571F;       /* 大字與圖形用（3.22:1；於 dark 為 5.10:1），不可用於紙色底的內文小字 */
-  --color-signal-ink: #B23F0E;   /* 5.07:1 — 文字用 */
+  /* 風險強調：signal 為深色底上的圖形／大字（4.61:1 於 brand）；signal-ink 為白底文字 */
+  --color-signal: #F06456;
+  --color-signal-ink: #B42318;   /* 6.08:1 於 base */
 
-  /* 深色區塊（首頁主視覺、圖譜畫布外框、行動呼籲） */
-  --color-dark: #121110;
-  --color-on-dark: #F3EFE6;
-  --color-on-dark-muted: #A8A294;  /* 7.42:1 於 dark */
-  --color-dark-line: #3A3833;
+  /* 深色區塊（主視覺、案件重演、行動呼籲）＝海軍藍 */
+  --color-dark: #0B2A4A;
+  --color-on-dark: #FFFFFF;          /* 14.54:1 */
+  --color-on-dark-muted: #B7C4D6;    /* 8.23:1 */
+  --color-dark-line: #24466B;
 
-  /* 圖譜專用（非文字，門檻 3:1，繪製於 canvas）——畫布維持深色，節點色才分得開 */
-  --color-graph-bg: #121110;
-  --color-focus: #f1c40f;
-  --color-path: #f39c12;
+  /* 圖譜專用（canvas，非文字門檻 3:1） */
+  --color-graph-bg: #0B2A4A;
+  --color-focus: #FFFFFF;
+  --color-path: #F06456;
 
   /* 三級處置刻度的區段底色（非文字） */
-  --color-zone-pass: #B9CFBF;
-  --color-zone-review: #E6C9A1;
-  --color-zone-block: #E3A89C;
+  --color-zone-pass: #BFD8C9;
+  --color-zone-review: #E8D3A8;
+  --color-zone-block: #EDB5AE;
 
-  /* 案件重演舞台（深色底上的圖形，非文字門檻 3:1） */
-  --color-node-idle: #8E887A;     /* 5.35:1 於 dark */
-  --color-node-victim: #D9B45B;   /* 9.55:1 */
-  --color-edge: #4A4740;
-  --color-pass-on-dark: #6FCF97;  /* 9.92:1 — 「放行」字樣 */
+  /* 案件重演舞台（深色底上的圖形） */
+  --color-node-idle: #8FA3BC;     /* 5.63:1 於 dark */
+  --color-node-victim: #E2C06A;   /* 8.30:1 */
+  --color-edge: #35557A;
+  --color-pass-on-dark: #7FD6A4;  /* 8.35:1 — 「放行」字樣 */
 
-  /* 研究頁圖表的類別色（依序固定指派，不循環）。validate_palette.js 於 panel #FBF9F4 六項全過 */
+  /* 研究頁圖表的類別色（依序固定指派，不循環）。validate_palette.js 於白底六項全過 */
   --color-series-1: #C2410C;      /* Random Forest */
   --color-series-2: #1F6FB2;      /* GraphSAGE + RMP */
   --color-series-3: #8C6A12;      /* GCN */
 
-  --color-ring: #B23F0E;         /* 鍵盤焦點環 */
+  --color-ring: #1F5A96;          /* 鍵盤焦點環 6.56:1 */
 
   --font-sans: "Noto Sans TC", system-ui, sans-serif;
   --font-serif: "Noto Serif TC", "Songti TC", serif;
@@ -83,14 +89,14 @@ h2 {
 
 /* 小標：等寬、字距拉開，全站章節編號共用 */
 .kicker {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 0.875rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  color: var(--color-signal-ink);
+  letter-spacing: 0.12em;
+  color: var(--color-gold);
 }
 .on-dark .kicker {
-  color: var(--color-signal);
+  color: var(--color-gold-on-dark);
 }
 
 /* 表單控制項的邊界是識別它的唯一依據，必須用達標的那一階 */
@@ -104,13 +110,13 @@ select {
   outline-offset: 2px;
 }
 .on-dark :focus-visible {
-  outline-color: var(--color-signal);
+  outline-color: var(--color-gold-on-dark);
 }
 
 /* ── 案件重演 ─────────────────────────────────────── */
 .replay-stage {
   background:
-    radial-gradient(ellipse at 78% 55%, rgb(228 87 31 / 0.1), transparent 55%),
+    linear-gradient(rgb(255 255 255 / 0.025) 1px, transparent 1px) 0 0 / 100% 40px,
     var(--color-dark);
 }
 .replay-edge {
@@ -205,7 +211,7 @@ select {
   width: 30cqw;
   min-width: 15rem;
   padding: 1em 1.3em;
-  background: rgb(18 17 16 / 0.92);
+  background: rgb(8 32 57 / 0.94);
   border: 1px solid var(--color-dark-line);
   font-size: max(11px, 1.3cqw);
   opacity: 0;
@@ -247,7 +253,7 @@ select {
   gap: 1.3em;
   padding: 0.8em 1.2em;
   font-size: max(10px, 1.25cqw);
-  background: rgb(18 17 16 / 0.92);
+  background: rgb(8 32 57 / 0.94);
   border: 1px solid var(--color-dark-line);
   opacity: 0;
   transform: translateY(10px);
@@ -294,7 +300,7 @@ select {
   top: 0;
   height: 3px;
   width: 100%;
-  background: var(--color-signal);
+  background: var(--color-gold-on-dark);
   transform-origin: left;
   animation: replay-progress linear forwards;
 }
@@ -355,8 +361,8 @@ select {
   background: var(--color-on-dark-muted);
 }
 .replay-dot.is-on::before {
-  border-color: var(--color-signal);
-  background: var(--color-signal);
+  border-color: var(--color-gold-on-dark);
+  background: var(--color-gold-on-dark);
 }
 
 /* 區塊進場：只在首屏用一次，避免到處亂動 */

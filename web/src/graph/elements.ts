@@ -4,15 +4,15 @@ import type { GraphNode, GraphPayload } from '../api/types'
 /**
  * 與首頁案件重演同一套語意：金＝被害人、橘＝風險節點、灰藍＝正常、米白＝審查目標。
  * Cytoscape 畫在 canvas 上讀不到 CSS 變數，這裡必須寫原始 hex（對應 index.css 的 token）。
- * 對比值為深色畫布 #121110 上實算，非文字門檻 3:1。
+ * 對比值為海軍藍畫布 #0B2A4A 上實算，非文字門檻 3:1。
  */
 export const GRAPH_COLOR = {
-  victim: '#D9B45B', // 9.55:1
-  risk: '#E4571F', // 5.10:1
-  normal: '#7D93AB', // 5.96:1
-  minor: '#6F695C', // 3.46:1 — 剝離的小額地址
-  other: '#C9C2B2', // 10.64:1 — 其他出金地址
-  focus: '#F3EFE6', // 16.44:1
+  victim: '#E2C06A', // 8.30:1 於海軍藍畫布 #0B2A4A
+  risk: '#F06456', // 4.61:1
+  normal: '#8FA3BC', // 5.63:1
+  minor: '#5F7A99', // 3.28:1 — 剝離的小額地址
+  other: '#D5DEE9', // 10.70:1 — 其他出金地址
+  focus: '#FFFFFF', // 14.54:1
 } as const
 
 const ROLE_COLOR: Record<string, string> = {

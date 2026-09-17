@@ -15,12 +15,12 @@ const STYLE: cytoscape.StylesheetJson = [
       width: 'data(size)',
       height: 'data(size)',
       label: 'data(label)',
-      color: '#F3EFE6',
+      color: '#FFFFFF',
       'font-size': 12,
       // 只用系統字型：Cytoscape 在初始化當下量文字寬度，網頁字型晚到會讓長標籤兩端被裁掉
       'font-family': 'ui-monospace, Consolas, Menlo, monospace',
       // 用底色襯字而非描邊：描邊會讓 Cytoscape 的文字貼圖在左右兩端被裁掉一截
-      'text-background-color': '#121110',
+      'text-background-color': '#0B2A4A',
       'text-background-opacity': 0.85,
       'text-background-padding': '3px',
       'text-valign': 'bottom',
@@ -31,18 +31,18 @@ const STYLE: cytoscape.StylesheetJson = [
   {
     // 工作台用分數色階時，命中圖樣的節點靠外框而非填色來標示
     selector: 'node[?motifCenter]',
-    style: { 'border-width': 2, 'border-color': '#F3EFE6' },
+    style: { 'border-width': 2, 'border-color': '#FFFFFF' },
   },
   {
     selector: 'node[?focused]',
-    style: { 'border-width': 5, 'border-color': '#E4571F' },
+    style: { 'border-width': 5, 'border-color': '#F06456' },
   },
   {
     selector: 'edge',
     style: {
       width: 1,
-      'line-color': '#4A4740',
-      'target-arrow-color': '#4A4740',
+      'line-color': '#4A6B91',
+      'target-arrow-color': '#4A6B91',
       'target-arrow-shape': 'triangle',
       'arrow-scale': 0.7,
       'curve-style': 'bezier',
@@ -50,7 +50,7 @@ const STYLE: cytoscape.StylesheetJson = [
   },
   {
     selector: 'edge[?highlighted]',
-    style: { width: 5, 'line-color': '#E4571F', 'target-arrow-color': '#E4571F' },
+    style: { width: 5, 'line-color': '#F06456', 'target-arrow-color': '#F06456' },
   },
 ]
 

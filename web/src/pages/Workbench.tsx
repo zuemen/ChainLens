@@ -89,7 +89,7 @@ export default function Workbench() {
             type="button"
             onClick={() => load('tron')}
             disabled={!addressValid || loading}
-            className="bg-ink px-6 py-2.5 font-bold text-base hover:bg-signal-ink disabled:opacity-40"
+            className="bg-brand px-6 py-2.5 font-bold text-white hover:bg-brand-hover disabled:opacity-40"
           >
             {loading ? '查詢中…' : '抓取真實金流'}
           </button>

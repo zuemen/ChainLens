@@ -117,7 +117,7 @@ export default function Screening() {
             type="button"
             onClick={run}
             disabled={loading}
-            className="bg-ink px-6 py-2.5 font-bold text-base hover:bg-signal-ink disabled:opacity-50"
+            className="bg-brand px-6 py-2.5 font-bold text-white hover:bg-brand-hover disabled:opacity-50"
           >
             {loading ? '審查中…' : '執行出金審查'}
           </button>

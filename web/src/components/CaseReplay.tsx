@@ -264,7 +264,7 @@ export function CaseReplay() {
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-4">
-          <Link to="/screening?auto=1" className="bg-signal px-6 py-3 font-bold text-dark hover:bg-on-dark">
+          <Link to="/screening?auto=1" className="bg-white px-6 py-3 font-bold text-brand hover:bg-panel-raised">
             親手執行一次即時審查
           </Link>
           <Link to="/workbench" className="border border-on-dark-muted px-6 py-3 hover:border-on-dark">
