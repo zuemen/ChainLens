@@ -17,9 +17,12 @@ const STYLE: cytoscape.StylesheetJson = [
       label: 'data(label)',
       color: '#F3EFE6',
       'font-size': 12,
-      'font-family': '"JetBrains Mono", ui-monospace, Menlo, monospace',
-      'text-outline-color': '#121110',
-      'text-outline-width': 2,
+      // 只用系統字型：Cytoscape 在初始化當下量文字寬度，網頁字型晚到會讓長標籤兩端被裁掉
+      'font-family': 'ui-monospace, Consolas, Menlo, monospace',
+      // 用底色襯字而非描邊：描邊會讓 Cytoscape 的文字貼圖在左右兩端被裁掉一截
+      'text-background-color': '#121110',
+      'text-background-opacity': 0.85,
+      'text-background-padding': '3px',
       'text-valign': 'bottom',
       'text-margin-y': 4,
       'border-width': 0,
