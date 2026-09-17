@@ -1,22 +1,35 @@
 import type { ElementDefinition } from 'cytoscape'
 import type { GraphNode, GraphPayload } from '../api/types'
 
-/** 角色色碼沿用 chainlens/app/workbench.py 的 ROLE_COLOR，與既有截圖保持一致。 */
+/**
+ * 與首頁案件重演同一套語意：金＝被害人、橘＝風險節點、灰藍＝正常、米白＝審查目標。
+ * Cytoscape 畫在 canvas 上讀不到 CSS 變數，這裡必須寫原始 hex（對應 index.css 的 token）。
+ * 對比值為深色畫布 #121110 上實算，非文字門檻 3:1。
+ */
+export const GRAPH_COLOR = {
+  victim: '#D9B45B', // 9.55:1
+  risk: '#E4571F', // 5.10:1
+  normal: '#7D93AB', // 5.96:1
+  minor: '#6F695C', // 3.46:1 — 剝離的小額地址
+  other: '#C9C2B2', // 10.64:1 — 其他出金地址
+  focus: '#F3EFE6', // 16.44:1
+} as const
+
 const ROLE_COLOR: Record<string, string> = {
-  victim: '#f5b041',
-  support: '#e74c3c',
-  aggregator: '#c0392b',
-  mule: '#e67e22',
-  peel: '#d35400',
-  peel_side: '#7f8c8d',
-  otc: '#9b59b6',
-  normal: '#5dade2',
+  victim: GRAPH_COLOR.victim,
+  support: GRAPH_COLOR.risk,
+  aggregator: GRAPH_COLOR.risk,
+  mule: GRAPH_COLOR.risk,
+  peel: GRAPH_COLOR.risk,
+  peel_side: GRAPH_COLOR.minor,
+  otc: GRAPH_COLOR.other,
+  normal: GRAPH_COLOR.normal,
 }
 
-const FOCUS_COLOR = '#f1c40f'
-const HIT_COLOR = '#e74c3c'
-const MED_COLOR = '#f5b041'
-const LOW_COLOR = '#5dade2'
+const FOCUS_COLOR = GRAPH_COLOR.focus
+const HIT_COLOR = GRAPH_COLOR.risk
+const MED_COLOR = GRAPH_COLOR.victim
+const LOW_COLOR = GRAPH_COLOR.normal
 const HIGH_SCORE = 0.7
 const MED_SCORE = 0.4
 
@@ -50,10 +63,19 @@ export function toElements(
     highlightPath.slice(0, -1).map((from, index) => `${from}->${highlightPath[index + 1]}`),
   )
 
+  const pathNodes = new Set(highlightPath)
+
   const nodes: ElementDefinition[] = payload.nodes.map((node) => ({
     data: {
       id: node.id,
-      label: node.id.length > 14 ? `${node.id.slice(0, 14)}…` : node.id,
+      // 只標關鍵節點（審查目標、風險路徑、命中圖樣或高分），其餘點選後在側欄看；
+      // 53 個節點全標會糊成一片，投影時一個字也讀不到
+      label:
+        focus === node.id || pathNodes.has(node.id) || node.is_motif_center || node.score >= HIGH_SCORE
+          ? node.id.length > 14
+            ? `${node.id.slice(0, 14)}…`
+            : node.id
+          : '',
       roleZh: node.role_zh,
       score: node.score,
       narrative: node.narrative_zh,

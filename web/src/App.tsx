@@ -31,13 +31,13 @@ export default function App() {
         跳至主要內容
       </a>
 
-      <header className="sticky top-0 z-40 border-b border-line bg-base/95 backdrop-blur">
-        <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-6 py-3.5">
+      <header className="sticky top-0 z-40 border-b border-line bg-base">
+        <nav className="mx-auto flex max-w-6xl 2xl:max-w-7xl flex-wrap items-center gap-x-6 gap-y-1 px-6 py-2.5 md:gap-x-8 md:py-3.5">
           <NavLink to="/" className="flex items-baseline gap-2" aria-label="鏈鏡 ChainLens 首頁">
             <span className="font-serif text-xl font-black tracking-wider">鏈鏡</span>
             <span className="tabular text-xs text-muted">ChainLens</span>
           </NavLink>
-          <div className="flex gap-6 text-sm">
+          <div className="order-last flex w-full gap-5 text-sm md:order-none md:w-auto md:gap-6">
             {NAV.map((item) => (
               <NavLink
                 key={item.to}
@@ -55,7 +55,7 @@ export default function App() {
             ))}
           </div>
           <NavLink
-            to="/screening"
+            to="/screening?auto=1"
             className="ml-auto bg-ink px-4 py-1.5 text-sm font-bold text-base hover:bg-signal-ink"
           >
             看 Demo
@@ -63,7 +63,7 @@ export default function App() {
         </nav>
       </header>
 
-      <main id="main" className={isLanding ? 'flex-1' : 'mx-auto w-full max-w-6xl flex-1 px-6 py-10'}>
+      <main id="main" className={isLanding ? 'flex-1' : 'mx-auto w-full max-w-6xl 2xl:max-w-7xl flex-1 px-6 py-10'}>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/screening" element={<Screening />} />
@@ -73,7 +73,7 @@ export default function App() {
       </main>
 
       <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-6 py-6 text-sm text-muted">
+        <div className="mx-auto flex max-w-6xl 2xl:max-w-7xl flex-wrap items-center gap-x-8 gap-y-2 px-6 py-6 text-sm text-muted">
           <span>研究用途，非投資或法律建議</span>
           <span>Demo 情境為合成劇本資料</span>
           <span className="ml-auto flex gap-6">

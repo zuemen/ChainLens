@@ -62,12 +62,18 @@ export function DecisionCard({ result }: { result: ScreenResult }) {
       </div>
 
       <RiskScale score={result.risk_score} color={DECISION_COLOR[result.decision]} />
+      <p className="mt-2 text-sm text-muted">
+        綜合 = 1 −（1 − 自身）×（1 − 關聯）；關聯 = 0.6^（階數 − 1），取所有上游風險節點中最大者。
+      </p>
 
       <p
         className="mt-6 border-l-4 pl-4 text-sm leading-relaxed text-ink"
         style={{ borderColor: DECISION_COLOR[result.decision] }}
       >
         {result.narrative_zh}
+        {result.decision === 'pass' && result.associations.length === 0 && (
+          <> 追溯 4 階內，沒有任何命中洗錢圖樣的節點有資金流向這個地址。</>
+        )}
       </p>
     </Panel>
   )

@@ -7,11 +7,11 @@ import { GraphView } from '../graph/GraphView'
 
 const TRON_ADDRESS = /^T[1-9A-HJ-NP-Za-km-z]{33}$/
 
-type GraphSource = { kind: 'example' } | { kind: 'tron'; address: string }
+type GraphSource = { kind: 'scenario' } | { kind: 'tron'; address: string }
 
 function sourceLabel(source: GraphSource | null): string {
   if (!source) return ''
-  return source.kind === 'tron' ? `TRON 即時：${source.address}` : '內建範例圖'
+  return source.kind === 'tron' ? `TRON 即時：${source.address}` : '出金審查劇本圖'
 }
 
 export default function Workbench() {
@@ -24,18 +24,18 @@ export default function Workbench() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  async function load(mode: 'example' | 'tron') {
+  async function load(mode: 'scenario' | 'tron') {
     setLoading(true)
     setError(null)
     try {
       const next = await postGraph(mode === 'tron' ? { mode, address } : { mode })
       setPayload(next)
-      setSource(mode === 'tron' ? { kind: 'tron', address } : { kind: 'example' })
+      setSource(mode === 'tron' ? { kind: 'tron', address } : { kind: 'scenario' })
       setSelected(null)
     } catch (err) {
       // 503＝伺服器未設定金鑰，即時鏈上查詢依設計停用（保護第三方 API 額度）；給訪客看得懂的說明
       if (err instanceof ApiError && err.status === 503) {
-        setError('公開 Demo 站為保護第三方 API 額度，已停用即時鏈上查詢；內建範例圖可完整操作。自行部署並設定金鑰後即可查詢真實地址。')
+        setError('公開 Demo 站為保護第三方 API 額度，已停用即時鏈上查詢；劇本圖可完整操作。自行部署並設定金鑰後即可查詢真實地址。')
       } else {
         setError(err instanceof ApiError ? err.detail : '載入失敗，請稍後再試。')
       }
@@ -45,8 +45,8 @@ export default function Workbench() {
   }
 
   useEffect(() => {
-    void load('example')
-    // 只在首次掛載時載入內建範例圖
+    void load('scenario')
+    // 只在首次掛載時載入劇本圖
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -61,9 +61,10 @@ export default function Workbench() {
     <div className="space-y-6">
       <div>
         <h1 className="text-4xl font-black leading-tight">金流圖譜工作台</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
-          內建範例圖含集資扇入、快速分散、剝洋蔥鏈三種圖樣。也可輸入 TRON 主網地址，
-          即時抓取 2-hop USDT 金流圖——真實查詢約需 10–30 秒。
+        <p className="mt-2 max-w-3xl leading-relaxed text-muted">
+          預設載入與首頁案件重演、出金審查同一份劇本圖，點任一節點可看該地址的風險證據。
+          本機部署並設定金鑰後，可輸入 TRON 主網地址即時抓取 2 階 USDT 金流圖（約 10–30 秒）；
+          公開 Demo 站為保護第三方 API 額度，停用即時查詢。
         </p>
       </div>
 
@@ -95,11 +96,11 @@ export default function Workbench() {
 
           <button
             type="button"
-            onClick={() => load('example')}
+            onClick={() => load('scenario')}
             disabled={loading}
             className="border border-line-strong px-5 py-2 hover:bg-panel-raised"
           >
-            用內建範例圖
+            載入劇本圖
           </button>
         </div>
       </Panel>
@@ -107,7 +108,7 @@ export default function Workbench() {
       {error && (
         <ErrorNotice
           message={error}
-          action={{ label: '改用內建範例圖', onClick: () => load('example') }}
+          action={{ label: '回到劇本圖', onClick: () => load('scenario') }}
         />
       )}
 
@@ -117,7 +118,13 @@ export default function Workbench() {
             <Panel
               title={`金流圖譜 · ${sourceLabel(source)}（${payload.meta.node_count} 節點 / ${payload.meta.edge_count} 邊）`}
             >
-              <GraphView payload={payload} layout="cose" scheme="risk" onSelect={handleSelect} />
+              {/* 劇本圖有角色與敘事順序：由左至右排版、依角色著色；真實鏈上圖沒有，改用分數色階 */}
+              <GraphView
+                payload={payload}
+                layout={source?.kind === 'tron' ? 'cose' : 'dagre'}
+                scheme={source?.kind === 'tron' ? 'risk' : 'role'}
+                onSelect={handleSelect}
+              />
               {payload.meta.truncated && (
                 <p className="mt-3 text-xs" style={{ color: 'var(--color-risk-med)' }}>
                   圖譜顯示風險最高的 {payload.meta.node_count} 個節點（原始共{' '}

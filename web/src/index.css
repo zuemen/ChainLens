@@ -29,7 +29,7 @@
   --color-dark-line: #3A3833;
 
   /* 圖譜專用（非文字，門檻 3:1，繪製於 canvas）——畫布維持深色，節點色才分得開 */
-  --color-graph-bg: #0d1219;
+  --color-graph-bg: #121110;
   --color-focus: #f1c40f;
   --color-path: #f39c12;
 
@@ -79,7 +79,7 @@ h2 {
 /* 小標：等寬、字距拉開，全站章節編號共用 */
 .kicker {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--color-signal-ink);
@@ -154,13 +154,13 @@ select {
   fill: var(--color-on-dark);
 }
 .replay-label text {
-  font-family: var(--font-mono);
-  font-size: 15px;
+  font-family: var(--font-sans);
+  font-size: 17px;
   fill: var(--color-on-dark-muted);
 }
 .replay-label text.is-strong {
   font-family: var(--font-sans);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   fill: var(--color-on-dark);
 }
@@ -177,7 +177,7 @@ select {
 }
 .replay-note {
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 16px;
   fill: var(--color-on-dark-muted);
 }
 .replay-fade {
@@ -187,41 +187,97 @@ select {
 .replay-fade.is-on {
   opacity: 1;
 }
-.replay-stamp-box {
-  fill: var(--color-dark);
-  stroke-width: 3;
+/* 舞台寬度跟著視窗高度縮：導覽列＋抬頭＋旁白約佔 350px，其餘留給舞台（長寬比 1200:560） */
+.replay-frame {
+  container-type: inline-size;
+  max-width: min(100%, calc((100vh - 352px) * 2.143));
+  min-width: min(100%, 560px);
 }
-.replay-stamp-box.is-pass {
-  stroke: var(--color-pass-on-dark);
+.replay-ticket {
+  position: absolute;
+  left: 1.5cqw;
+  top: 1.5cqw;
+  width: 30cqw;
+  min-width: 15rem;
+  padding: 1em 1.3em;
+  background: rgb(18 17 16 / 0.92);
+  border: 1px solid var(--color-dark-line);
+  font-size: max(11px, 1.3cqw);
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.5s, transform 0.5s;
+  pointer-events: none;
 }
-.replay-stamp-box.is-block {
-  stroke: var(--color-signal);
+.replay-ticket.is-on {
+  opacity: 1;
+  transform: none;
 }
-.replay-stamp {
+.replay-verdict {
+  display: inline-block;
+  padding: 0.3rem 0.9rem;
+  border: 3px solid currentColor;
   font-family: var(--font-serif);
-  font-size: 24px;
+  font-size: 1.15rem;
   font-weight: 900;
+  white-space: nowrap;
 }
-.replay-stamp.is-pass {
-  fill: var(--color-pass-on-dark);
+.replay-verdict.is-pass {
+  color: var(--color-pass-on-dark);
 }
-.replay-stamp.is-block {
-  fill: var(--color-signal);
+.replay-verdict.is-block {
+  color: var(--color-signal);
 }
+.replay-verdict.is-void {
+  opacity: 0.6;
+  text-decoration: line-through;
+  text-decoration-thickness: 3px;
+}
+/* 算式面板的字級跟著舞台寬度縮放（cqw），不同螢幕上與圖的相對大小一致、不壓到節點 */
 .replay-score {
   position: absolute;
-  left: 1.25rem;
-  bottom: 1.25rem;
+  left: 1.2cqw;
+  bottom: 1.2cqw;
   display: flex;
   align-items: flex-end;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
+  gap: 1.3em;
+  padding: 0.8em 1.2em;
+  font-size: max(10px, 1.25cqw);
   background: rgb(18 17 16 / 0.92);
   border: 1px solid var(--color-dark-line);
   opacity: 0;
   transform: translateY(10px);
   transition: opacity 0.6s, transform 0.6s;
   pointer-events: none;
+}
+.rs-label {
+  color: var(--color-on-dark-muted);
+}
+.rs-num {
+  font-family: var(--font-serif);
+  font-size: 2.9em;
+  font-weight: 900;
+  line-height: 1.05;
+}
+.rs-num.is-total {
+  font-size: 3.7em;
+  color: var(--color-signal);
+}
+.rs-op {
+  font-family: var(--font-mono);
+  font-size: 1.8em;
+  color: var(--color-on-dark-muted);
+  padding-bottom: 0.25em;
+}
+.rs-verdicts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  margin-left: 0.8em;
+}
+.rs-verdicts .replay-verdict {
+  font-size: 1.3em;
+  border-width: 2px;
+  padding: 0.2em 0.7em;
 }
 .replay-score.is-on {
   opacity: 1;
@@ -246,14 +302,20 @@ select {
   }
 }
 @media (max-width: 767px) {
-  .replay-score {
+  .replay-score,
+  .replay-ticket {
     position: static;
     display: none;
-    justify-content: center;
+    width: auto;
+    font-size: 0.8rem;
     border-width: 1px 0 0;
+  }
+  .replay-ticket.is-on {
+    display: block;
   }
   .replay-score.is-on {
     display: flex;
+    flex-wrap: wrap;
   }
 }
 .replay-btn {
@@ -270,17 +332,24 @@ select {
 .replay-btn:disabled {
   opacity: 0.35;
 }
+/* 圓點本體 12px，但可點範圍 28px（觸控友善） */
 .replay-dot {
-  width: 0.75rem;
-  height: 0.75rem;
-  border-radius: 9999px;
-  border: 2px solid var(--color-on-dark-muted);
+  position: relative;
+  width: 1.75rem;
+  height: 1.75rem;
   padding: 0;
 }
-.replay-dot.is-done {
+.replay-dot::before {
+  content: "";
+  position: absolute;
+  inset: 0.5rem;
+  border-radius: 9999px;
+  border: 2px solid var(--color-on-dark-muted);
+}
+.replay-dot.is-done::before {
   background: var(--color-on-dark-muted);
 }
-.replay-dot.is-on {
+.replay-dot.is-on::before {
   border-color: var(--color-signal);
   background: var(--color-signal);
 }

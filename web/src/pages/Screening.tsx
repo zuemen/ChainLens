@@ -77,9 +77,10 @@ export default function Screening() {
     <div className="space-y-6">
       <div>
         <h1 className="text-4xl font-black leading-tight">出金審查</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
-          交易所用戶申請將 50 萬 USDT 提領至外部地址。該地址從未被通報、不在任何黑名單上——
-          傳統名單比對會直接放行。以下展示結構化關聯追溯如何攔下它。
+        <p className="mt-2 max-w-3xl leading-relaxed text-muted">
+          {target === 'TOtcOut01'
+            ? '交易所用戶申請將 50 萬 USDT 提領至外部地址。該地址從未被通報、不在任何黑名單上，名單比對會直接放行。以下是鏈鏡的即時審查結果。'
+            : '對照組：同一套引擎審查一個只與一般商家往來的正常用戶地址，確認不會被誤攔。'}
         </p>
       </div>
 
@@ -129,11 +130,20 @@ export default function Screening() {
         <ErrorNotice message="目前顯示的是內建離線快照（案例金額固定為 500,000 USDT，與上方輸入的申請金額無關），非即時查詢結果。" />
       )}
 
+      {!result && !error && !loading && (
+        <div className="border border-dashed border-line-strong p-8 text-muted">
+          <p className="font-serif text-xl font-bold text-ink">按「執行出金審查」，約 1 秒出結果</p>
+          <p className="mt-2 leading-relaxed">
+            會依序看到：審查決策與三個分數 → 金流圖譜與風險資金路徑 → 資金關聯證據鏈 → 可疑交易申報（STR）草稿。
+          </p>
+        </div>
+      )}
+
       {result && (
         <>
           <DecisionCard result={result} />
 
-          <Panel title="金流圖譜（橘色路徑＝風險資金流向出金地址；金色＝審查目標）">
+          <Panel title="金流圖譜">
             <GraphView
               payload={result.graph}
               highlightPath={result.highlight_path}
@@ -192,7 +202,7 @@ export default function Screening() {
                 </button>
               }
             >
-              <pre className="tabular max-h-96 overflow-auto whitespace-pre-wrap text-xs leading-relaxed text-muted">
+              <pre className="tabular whitespace-pre-wrap text-sm leading-relaxed text-muted">
                 {result.str_draft_zh}
               </pre>
             </Panel>

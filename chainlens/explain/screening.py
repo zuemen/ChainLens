@@ -175,8 +175,8 @@ def generate_str_draft(
         f"　　{evidence['narrative_zh']}",
         "",
         "五、建議處置",
-        f"　　{_DECISION_ZH[decision]}；如經人工審查確認，依洗錢防制法及虛擬資產服務法",
-        "　　相關規定辦理可疑交易申報，並保留本報告與圖譜快照為稽核軌跡。",
+        f"　　{_DECISION_ZH[decision]}；如經人工審查確認，依洗錢防制法及相關法令",
+        "　　辦理疑似洗錢或資恐交易申報（STR），並建議由法遵人員留存本報告與圖譜快照備查。",
     ]
     return "\n".join(lines)
 

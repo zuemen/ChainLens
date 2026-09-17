@@ -163,3 +163,12 @@ def test_favicon_no_content() -> None:
 def test_favicon_png_no_content() -> None:
     """瀏覽器亦會索取 /favicon.png，一併回 204。"""
     assert client.get("/favicon.png").status_code == 204
+
+
+def test_browser_typo_redirects_home_but_api_clients_get_404(tmp_path, monkeypatch) -> None:
+    """瀏覽器訪客打錯網址導回首頁；API 用戶端（不收 text/html）照常 404。"""
+    _fake_site(tmp_path, monkeypatch)
+    browser = client.get("/no-such-page", headers={"accept": "text/html"}, follow_redirects=False)
+    assert browser.status_code in (307, 308)
+    assert browser.headers["location"] == "/"
+    assert client.get("/no-such-page", headers={"accept": "application/json"}).status_code == 404

@@ -31,8 +31,8 @@ const COMPARE = [
 const METRICS = [
   { value: '0.806', label: 'Random Forest F1', note: 'Elliptic 公開資料集，illicit 類別，官方時間切分' },
   { value: '203,769', label: '基準資料節點數', note: 'Elliptic 比特幣交易圖' },
-  { value: '795', label: '真實鏈上實測節點', note: 'TronGrid 即時擷取 TRON 地址 USDT 2 階金流圖' },
-  { value: '144', label: '自動化測試', note: 'pytest 98＋vitest 46，GitHub Actions CI' },
+  { value: '795', label: '真實鏈上實測節點', note: '以 TronGrid 擷取真實 TRON 地址的 USDT 2 階金流圖（本機實測；公開站為保護 API 額度停用即時查詢）' },
+  { value: '147', label: '自動化測試', note: 'pytest 101＋vitest 46，GitHub Actions CI' },
 ]
 
 const DONE = [
@@ -83,19 +83,19 @@ function SectionHead({ index, kicker, title }: { index: string; kicker: string; 
 export default function Landing() {
   return (
     <div>
-      {/* ── 主視覺：一句話定位，緊接案件重演；兩者合計要在一屏內 ── */}
+      {/* ── 主視覺：一句話定位，緊接案件重演；兩者合計要在一屏內（含 1280×720 投影） ── */}
       <section className="on-dark bg-dark text-on-dark">
-        <div className="reveal mx-auto flex max-w-6xl flex-wrap items-end gap-x-12 gap-y-4 px-6 pb-6 pt-9">
-          <div className="flex items-baseline gap-4">
-            <h1 className="text-6xl font-black leading-none tracking-wider md:text-7xl">鏈鏡</h1>
-            <span className="tabular text-lg tracking-wider text-on-dark-muted">ChainLens</span>
+        <div className="reveal mx-auto flex max-w-6xl 2xl:max-w-7xl flex-wrap items-center gap-x-10 gap-y-3 px-6 pb-4 pt-6">
+          <div className="flex items-baseline gap-3">
+            <h1 className="text-5xl font-black leading-none tracking-wider md:text-6xl">鏈鏡</h1>
+            <span className="tabular tracking-wider text-on-dark-muted">ChainLens</span>
           </div>
-          <p className="font-serif text-xl font-bold leading-snug md:text-2xl">
+          <p className="font-serif text-lg font-bold leading-snug md:text-xl">
             Travel Rule 查「收款人是誰」
             <br />
             <span className="text-signal">鏈鏡查「這筆錢流向哪裡」</span>
           </p>
-          <div className="ml-auto self-start md:self-end">
+          <div className="ml-auto">
             <ServiceStatus />
           </div>
         </div>
@@ -104,7 +104,7 @@ export default function Landing() {
 
       {/* ── 運作方式 ── */}
       <section className="border-y border-line bg-panel">
-        <div className="mx-auto max-w-6xl px-6 py-20">
+        <div className="mx-auto max-w-6xl 2xl:max-w-7xl px-6 py-16">
           <SectionHead index="01" kicker="分析方法" title="由手法找地址，再沿資金路徑傳導風險" />
           <ol className="relative mt-12 grid gap-10 md:grid-cols-4 md:gap-8">
             <div className="absolute left-3 right-3 top-3 hidden h-0.5 bg-signal md:block" aria-hidden="true" />
@@ -113,7 +113,7 @@ export default function Landing() {
                 <span className="absolute left-0 top-0 hidden h-6 w-6 rounded-full border-4 border-signal bg-panel md:block" aria-hidden="true" />
                 <div className="kicker">STEP {index + 1}</div>
                 <h3 className="mt-2 font-serif text-2xl font-bold">{step.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-muted">{step.body}</p>
+                <p className="mt-3 leading-relaxed text-muted">{step.body}</p>
               </li>
             ))}
           </ol>
@@ -121,13 +121,13 @@ export default function Landing() {
           <div className="mt-14 grid gap-10 md:grid-cols-2">
             <div className="border-t-2 border-ink pt-5">
               <h3 className="font-serif text-xl font-bold">被害人不連坐</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted">
+              <p className="mt-2 leading-relaxed text-muted">
                 集資扇入的資金來源方是被害人，不加風險分。劇本圖 12 位被害人、5 位正常用戶全數判為低風險。
               </p>
             </div>
             <div className="border-t-2 border-ink pt-5">
               <h3 className="font-serif text-xl font-bold">洗錢執行層不漂白</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted">
+              <p className="mt-2 leading-relaxed text-muted">
                 快速分散的下游車手、剝洋蔥鏈的中繼地址一併標為風險節點。劇本圖 6 個車手、12 個中繼全數判為高風險。
               </p>
             </div>
@@ -136,9 +136,9 @@ export default function Landing() {
       </section>
 
       {/* ── 差異 ── */}
-      <section className="mx-auto max-w-6xl px-6 py-20">
+      <section className="mx-auto max-w-6xl 2xl:max-w-7xl px-6 py-16">
         <SectionHead index="02" kicker="定位" title="把防線，從名單推進到資金結構" />
-        <div className="mt-10 overflow-x-auto">
+        <div className="mt-10 hidden overflow-x-auto md:block">
           <table className="w-full min-w-[640px] border-collapse text-left">
             <thead>
               <tr className="font-serif text-lg">
@@ -160,22 +160,35 @@ export default function Landing() {
             </tbody>
           </table>
         </div>
+        <div className="mt-8 space-y-6 md:hidden">
+          {COMPARE.map((row) => (
+            <div key={row.label} className="border-t-2 border-ink pt-3">
+              <div className="text-sm text-muted">{row.label}</div>
+              <dl className="mt-2 space-y-2">
+                <div className="bg-ink p-3 text-on-dark"><dt className="text-xs text-on-dark-muted">鏈鏡 ChainLens</dt><dd className="font-medium">{row.us}</dd></div>
+                <div><dt className="text-xs text-muted">黑名單比對</dt><dd>{row.blacklist}</dd></div>
+                <div><dt className="text-xs text-muted">Travel Rule</dt><dd>{row.travel}</dd></div>
+              </dl>
+            </div>
+          ))}
+        </div>
         <p className="mt-8 max-w-3xl border-l-4 border-signal pl-5 leading-relaxed text-muted">
           <strong className="text-ink">互補，而非取代。</strong>
-          Travel Rule 回答的是「收款人是誰」；資金流向的關聯，仍需要結構分析補上。
+          Travel Rule（旅行規則）要求業者在轉帳時交換收付款人的身分資訊，回答的是「收款人是誰」；
+          資金流向的關聯，仍需要結構分析補上。
         </p>
       </section>
 
       {/* ── 驗證 ── */}
       <section className="border-y border-line bg-panel">
-        <div className="mx-auto max-w-6xl px-6 py-20">
+        <div className="mx-auto max-w-6xl 2xl:max-w-7xl px-6 py-16">
           <SectionHead index="03" kicker="驗證" title="公開資料集基準，任何人都能重現" />
           <dl className="mt-10 grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
             {METRICS.map((metric) => (
               <div key={metric.label} className="border-t border-line-strong pt-5">
                 <dd className="font-serif text-5xl font-black leading-none">{metric.value}</dd>
                 <dt className="mt-3 font-bold">{metric.label}</dt>
-                <dd className="mt-1 text-sm leading-relaxed text-muted">{metric.note}</dd>
+                <dd className="mt-1 leading-relaxed text-muted">{metric.note}</dd>
               </div>
             ))}
           </dl>
@@ -190,7 +203,7 @@ export default function Landing() {
       </section>
 
       {/* ── 現況與藍圖 ── */}
-      <section className="mx-auto max-w-6xl px-6 py-20">
+      <section className="mx-auto max-w-6xl 2xl:max-w-7xl px-6 py-16">
         <SectionHead index="04" kicker="現況" title="已經跑得起來的，與接下來要做的" />
         <p className="mt-5 max-w-3xl leading-relaxed text-muted">
           出金審查 Demo 使用合成劇本資料；尚無商業客戶導入。原始碼、測試與實測數據全部公開。
@@ -198,7 +211,7 @@ export default function Landing() {
         <div className="mt-10 grid gap-12 md:grid-cols-2">
           <div>
             <h3 className="flex items-baseline justify-between border-b-2 border-risk-low pb-3 text-lg font-bold text-risk-low">
-              已實作 <span className="tabular text-xs font-medium">main 分支可執行</span>
+              已實作 <span className="text-sm font-medium">現在就能操作</span>
             </h3>
             <ul>
               {DONE.map((item) => (
@@ -211,7 +224,7 @@ export default function Landing() {
           </div>
           <div>
             <h3 className="flex items-baseline justify-between border-b-2 border-signal-ink pb-3 text-lg font-bold text-signal-ink">
-              發展藍圖 <span className="tabular text-xs font-medium">尚未實作</span>
+              發展藍圖 <span className="text-sm font-medium">尚未實作</span>
             </h3>
             <ul>
               {ROADMAP.map((item) => (
@@ -227,14 +240,14 @@ export default function Landing() {
 
       {/* ── 行動呼籲 ── */}
       <section className="on-dark bg-dark text-on-dark">
-        <div className="mx-auto max-w-6xl px-6 py-20">
+        <div className="mx-auto max-w-6xl 2xl:max-w-7xl px-6 py-16">
           <p className="font-serif text-4xl font-black leading-snug md:text-6xl">
             在錢出去之前，
             <br />
             <span className="text-signal">看見它要去哪裡</span>
           </p>
           <div className="mt-10 flex flex-wrap gap-4">
-            <Link to="/screening" className="bg-signal px-6 py-3 font-bold text-dark hover:bg-on-dark">
+            <Link to="/screening?auto=1" className="bg-signal px-6 py-3 font-bold text-dark hover:bg-on-dark">
               執行出金審查 Demo
             </Link>
             <Link to="/workbench" className="border border-on-dark-muted px-6 py-3 hover:border-on-dark">

@@ -17,6 +17,15 @@ from chainlens.sna.motifs import MotifHit, detect_all
 
 _LABEL_ZH = {"high": "高風險", "medium": "中風險", "low": "低風險"}
 
+# SNA 指標欄位名 → 法遵人員讀得懂的說法（敘事與 STR 草稿用）
+_METRIC_ZH = {
+    "in_degree": "收款來源數",
+    "out_degree": "付款對象數",
+    "pagerank": "資金匯集影響力（PageRank）",
+    "kcore": "核心度（k-core）",
+    "betweenness": "居間轉手程度（中介中心性）",
+}
+
 PipelineResult = tuple[pd.DataFrame, dict[Any, int], dict[int, float], list[MotifHit]]
 
 
@@ -29,6 +38,10 @@ def run_pipeline(g: nx.DiGraph) -> PipelineResult:
     if all(v < 0 for v in labels.values()):
         # 無標註圖（如 TRON 即時圖）：以圖樣命中中心作為疑似非法的代理標註
         labels = {h.center: 1 for h in motif_hits}
+        # 代理標註不是「已知非法」：敘事用語要分開（見 generate_evidence）
+        g.graph["proxy_labels"] = True
+    else:
+        g.graph["proxy_labels"] = False
     risk_ratios = community_risk_ratio(partition, labels)
     return sna_df, partition, risk_ratios, motif_hits
 
@@ -69,7 +82,8 @@ def generate_evidence(
     label = "high" if score >= 0.7 else "medium" if score >= 0.4 else "low"
     top_features = sorted(percentiles, key=lambda c: percentiles[c], reverse=True)[:3]
 
-    narrative: list[str] = [f"地址/交易 {node} 綜合風險評分 {score:.2f}（{_LABEL_ZH[label]}）。"]
+    # 這是節點「自身」的結構分數；出金審查的綜合分數另由 screening 融合關聯分數得出，兩者不可混稱
+    narrative: list[str] = [f"節點 {node} 自身結構風險評分 {score:.2f}（{_LABEL_ZH[label]}）。"]
     if node_hits:
         narrative.append("命中詐騙圖樣：" + "；".join(h.description_zh for h in node_hits))
     top = top_features[0]
@@ -79,8 +93,17 @@ def generate_evidence(
         level = "偏高"
     else:
         level = "未見明顯異常"
-    narrative.append(f"其 {top} 指標位於全圖第 {percentiles[top]:.0f} 百分位，結構位置{level}。")
-    narrative.append(f"所屬社群 #{comm} 已知非法佔比 {risk_ratio:.0%}。")
+    narrative.append(
+        f"其{_METRIC_ZH.get(top, top)}位於全圖第 {percentiles[top]:.0f} 百分位，結構位置{level}。"
+    )
+    if g.graph.get("proxy_labels"):
+        # 無標註圖的社群風險來自圖樣命中（代理標註），不得寫成「已知非法」
+        if risk_ratio > 0:
+            narrative.append(f"所屬資金社群 #{comm} 內含圖樣命中節點。")
+        else:
+            narrative.append(f"所屬資金社群 #{comm} 內無圖樣命中節點。")
+    else:
+        narrative.append(f"所屬社群 #{comm} 已知非法佔比 {risk_ratio:.0%}。")
     if model_score is not None:
         narrative.append(f"GNN 模型判定非法機率 {model_score:.2f}。")
 

@@ -1,7 +1,7 @@
 import type { GraphPayload } from '../api/types'
 
 /** 案件重演舞台的座標系（SVG viewBox） */
-export const STAGE = { width: 1200, height: 540 }
+export const STAGE = { width: 1200, height: 560 }
 
 export interface ReplayNode {
   id: string
@@ -15,11 +15,11 @@ export interface ReplayNode {
 const COLUMN_X0 = 70
 const COLUMN_GAP = 150
 const BAND_TOP = 96
-const BAND_BOTTOM = 440
+const BAND_BOTTOM = 410
 const MAX_ROW_GAP = 46
-const NORMAL_STRIP_Y = 506
-const NORMAL_X0 = 610
-const NORMAL_GAP = 110
+const NORMAL_STRIP_Y = 528
+const NORMAL_X0 = 770
+const NORMAL_GAP = 90
 
 /** 洗錢三階段由左至右：集資（被害人→客服→主錢包）、分層（車手→剝洋蔥鏈）、整合（出金地址） */
 function columnOf(id: string, role: string): number | null {

@@ -146,9 +146,9 @@ class ScreenRequest(BaseModel):
 
 
 class GraphRequest(BaseModel):
-    """工作台圖譜請求：內建範例圖，或 TronGrid 即時抓取的 2-hop 真實圖。"""
+    """工作台圖譜請求：出金審查劇本圖、小型範例圖，或 TronGrid 即時抓取的 2-hop 真實圖。"""
 
-    mode: Literal["example", "tron"] = "example"
+    mode: Literal["example", "scenario", "tron"] = "example"
     address: str | None = Field(default=None, max_length=64)
 
 
@@ -246,6 +246,9 @@ def graph(
 
     if req.mode == "example":
         g = tron.load_example_graph()
+    elif req.mode == "scenario":
+        # 與 /screen、首頁案件重演同一份劇本，讓工作台看到的是同一個案子
+        g = scenario.load_withdrawal_scenario()
     else:
         if not req.address:
             raise HTTPException(status_code=400, detail="tron 模式需提供 address")
@@ -356,9 +359,16 @@ def score(
     }
 
 
+def _not_found(request: Request) -> Response:
+    """瀏覽器訪客打錯網址時導回首頁；API 用戶端（不收 text/html）照常拿到 404。"""
+    if "text/html" in request.headers.get("accept", ""):
+        return RedirectResponse("/")
+    raise HTTPException(status_code=404, detail="Not Found")
+
+
 # 必須註冊在所有 API 路由之後：catch-all 只接沒有其他路由認領的 GET
 @app.get("/{path:path}", include_in_schema=False)
-def site(path: str) -> Response:
+def site(path: str, request: Request) -> Response:
     """Demo 網站的靜態資產與前端路由。"""
     is_spa_route = path.split("/", 1)[0] in SPA_ROUTES
     index = _site_index()
@@ -366,7 +376,7 @@ def site(path: str) -> Response:
         # 靜態檔改由 CDN 提供、函式內沒有 public/ 時，前端路由退回首頁而不是 404
         if is_spa_route:
             return RedirectResponse("/")
-        raise HTTPException(status_code=404, detail="Not Found")
+        return _not_found(request)
 
     root_dir = SITE_DIR.resolve()
     candidate = (root_dir / path).resolve()
@@ -375,4 +385,4 @@ def site(path: str) -> Response:
         return FileResponse(candidate)
     if is_spa_route:
         return FileResponse(index, headers=_NO_CACHE)
-    raise HTTPException(status_code=404, detail="Not Found")
+    return _not_found(request)

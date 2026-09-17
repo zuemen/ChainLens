@@ -48,7 +48,7 @@ export function postScreen(target: string, amountUsdt: number): Promise<ScreenRe
 }
 
 export function postGraph(body: {
-  mode: 'example' | 'tron'
+  mode: 'example' | 'scenario' | 'tron'
   address?: string
 }): Promise<WorkbenchPayload> {
   return post<WorkbenchPayload>('/graph', body)

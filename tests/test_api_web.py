@@ -183,3 +183,22 @@ def test_rate_limit_returns_429_when_exceeded(monkeypatch: pytest.MonkeyPatch) -
     third = client.post("/graph", json=body)
     assert third.status_code == 429
     assert "過於頻繁" in third.json()["detail"]
+
+
+def test_graph_scenario_mode_matches_screening_case() -> None:
+    """工作台的 scenario 模式與 /screen 是同一個案子（同一份劇本圖）。"""
+    graph = client.post("/graph", json={"mode": "scenario"}).json()
+    screen = client.post("/screen", json={"target": "TOtcOut01", "amount_usdt": 500000}).json()
+    assert {n["id"] for n in graph["nodes"]} == {n["id"] for n in screen["graph"]["nodes"]}
+    assert len(graph["edges"]) == len(screen["graph"]["edges"])
+
+
+def test_str_draft_wording_is_consistent() -> None:
+    """STR 草稿不得把自身分數稱為綜合分數，也不得對無標註圖宣稱「已知非法」。"""
+    draft = client.post("/screen", json={"target": "TOtcOut01", "amount_usdt": 500000}).json()[
+        "str_draft_zh"
+    ]
+    assert "自身結構風險評分 0.33" in draft
+    assert "綜合風險評分 0.33" not in draft
+    assert "已知非法" not in draft
+    assert "in_degree" not in draft

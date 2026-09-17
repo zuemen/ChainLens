@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { GraphPayload } from '../api/types'
-import { nodeColor, toElements } from './elements'
+import { GRAPH_COLOR, nodeColor, toElements } from './elements'
 
 const payload: GraphPayload = {
   nodes: [
@@ -90,21 +90,21 @@ describe('toElements', () => {
 })
 
 describe('nodeColor（role 配色：劇本圖）', () => {
-  it('focus 節點用金色，優先於其他規則', () => {
-    expect(nodeColor(payload.nodes[0], { scheme: 'role', focus: 'TAggregator01' })).toBe('#f1c40f')
+  it('focus 節點用米白，優先於其他規則', () => {
+    expect(nodeColor(payload.nodes[0], { scheme: 'role', focus: 'TAggregator01' })).toBe(GRAPH_COLOR.focus)
   })
 
-  it('命中圖樣的節點用紅色', () => {
-    expect(nodeColor(payload.nodes[0], { scheme: 'role' })).toBe('#e74c3c')
+  it('命中圖樣的節點用風險橘', () => {
+    expect(nodeColor(payload.nodes[0], { scheme: 'role' })).toBe(GRAPH_COLOR.risk)
   })
 
-  it('高分節點即使沒命中圖樣也用紅色', () => {
-    expect(nodeColor({ ...payload.nodes[1], score: 0.8 }, { scheme: 'role' })).toBe('#e74c3c')
+  it('高分節點即使沒命中圖樣也用風險橘', () => {
+    expect(nodeColor({ ...payload.nodes[1], score: 0.8 }, { scheme: 'role' })).toBe(GRAPH_COLOR.risk)
   })
 
   it('其餘節點依角色著色', () => {
-    expect(nodeColor(payload.nodes[1], { scheme: 'role' })).toBe('#e67e22')
-    expect(nodeColor(payload.nodes[2], { scheme: 'role' })).toBe('#9b59b6')
+    expect(nodeColor(payload.nodes[1], { scheme: 'role' })).toBe(GRAPH_COLOR.risk)
+    expect(nodeColor(payload.nodes[2], { scheme: 'role' })).toBe(GRAPH_COLOR.other)
   })
 })
 
@@ -118,10 +118,10 @@ describe('nodeColor（risk 配色：工作台）', () => {
     score,
   })
 
-  it('高分紅、中分琥珀、低分藍——三段都不同', () => {
-    expect(nodeColor(normal(0.85), { scheme: 'risk' })).toBe('#e74c3c')
-    expect(nodeColor(normal(0.55), { scheme: 'risk' })).toBe('#f5b041')
-    expect(nodeColor(normal(0.12), { scheme: 'risk' })).toBe('#5dade2')
+  it('高分橘、中分金、低分灰藍——三段都不同', () => {
+    expect(nodeColor(normal(0.85), { scheme: 'risk' })).toBe(GRAPH_COLOR.risk)
+    expect(nodeColor(normal(0.55), { scheme: 'risk' })).toBe(GRAPH_COLOR.victim)
+    expect(nodeColor(normal(0.12), { scheme: 'risk' })).toBe(GRAPH_COLOR.normal)
   })
 
   it('風險配色忽略角色，同分數不因角色而異色', () => {
@@ -130,6 +130,6 @@ describe('nodeColor（risk 配色：工作台）', () => {
   })
 
   it('focus 仍然優先', () => {
-    expect(nodeColor(normal(0.12), { scheme: 'risk', focus: 'TMule03' })).toBe('#f1c40f')
+    expect(nodeColor(normal(0.12), { scheme: 'risk', focus: 'TMule03' })).toBe(GRAPH_COLOR.focus)
   })
 })

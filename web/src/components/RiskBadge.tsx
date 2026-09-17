@@ -18,11 +18,11 @@ export function riskColor(label: RiskLabel): string {
 
 export function RiskBadge({ score, label }: { score: number; label: RiskLabel }) {
   return (
-    <span className="inline-flex items-baseline gap-2">
+    <span className="inline-flex flex-wrap items-baseline gap-x-2">
       <span className="font-serif text-6xl font-black leading-none" style={{ color: riskColor(label) }}>
         {score.toFixed(2)}
       </span>
-      <span className="text-sm font-bold" style={{ color: riskColor(label) }}>
+      <span className="whitespace-nowrap text-sm font-bold" style={{ color: riskColor(label) }}>
         {LABEL_ZH[label]}
       </span>
     </span>
