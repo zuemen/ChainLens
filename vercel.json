@@ -8,5 +8,11 @@
   },
   "env": {
     "CHAINLENS_CACHE_DIR": "/tmp/chainlens-cache"
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/(screening|workbench|research)",
+      "destination": "/index.html"
+    }
+  ]
 }

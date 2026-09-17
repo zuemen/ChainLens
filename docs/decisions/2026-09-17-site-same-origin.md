@@ -28,3 +28,9 @@
 ## 驗證
 本機以 uvicorn 同源提供：`/`、`/screening` 重新整理、靜態資產、`/docs`、`/health` 皆 200，未知路徑 404；
 瀏覽器實跑出金審查得到即時結果 0.73（非離線快照），console 無錯誤。pytest 98、vitest 34、ruff、tsc 全過。
+
+## 部署後實測（2026-09-17）
+- `/` 與靜態資產由 Vercel CDN 提供（`x-vercel-cache: HIT`，約 0.36 秒），**沒有冷啟動問題**。
+- Python 函式內確實沒有 `public/`：前端路由原本被 FastAPI 導回 `/`。
+  因此在 `vercel.json` 加 rewrite，把 `/screening`、`/workbench`、`/research` 直接指到 `/index.html`，
+  深連結與重新整理都留在原頁。FastAPI 的 catch-all 仍保留，供本機與 Docker／Render 部署使用。
