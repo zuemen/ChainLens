@@ -31,7 +31,7 @@ const METRICS = [
   { value: '0.806', label: 'Random Forest F1', note: 'Elliptic 公開資料集，illicit 類別，官方時間切分' },
   { value: '203,769', label: '基準資料節點數', note: 'Elliptic 比特幣交易圖' },
   { value: '795', label: '真實鏈上實測節點', note: 'TronGrid 即時擷取 TRON 地址 USDT 2 階金流圖' },
-  { value: '129', label: '自動化測試', note: 'pytest 95＋vitest 34，GitHub Actions CI' },
+  { value: '132', label: '自動化測試', note: 'pytest 98＋vitest 34，GitHub Actions CI' },
 ]
 
 const DONE = [

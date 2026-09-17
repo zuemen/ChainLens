@@ -27,4 +27,4 @@
 
 ## 驗證
 本機以 uvicorn 同源提供：`/`、`/screening` 重新整理、靜態資產、`/docs`、`/health` 皆 200，未知路徑 404；
-瀏覽器實跑出金審查得到即時結果 0.73（非離線快照），console 無錯誤。pytest 95、vitest 34、ruff、tsc 全過。
+瀏覽器實跑出金審查得到即時結果 0.73（非離線快照），console 無錯誤。pytest 98、vitest 34、ruff、tsc 全過。
