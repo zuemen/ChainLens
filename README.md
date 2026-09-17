@@ -4,7 +4,11 @@
 
 **線上 Demo：<https://chain-lens-beta.vercel.app>**（出金審查情境、金流圖譜工作台、研究成果；API 文件在 [`/docs`](https://chain-lens-beta.vercel.app/docs)）。Demo 情境為合成劇本資料。
 
-ChainLens 以社會網路分析（SNA）＋圖神經網路（GNN）偵測虛擬資產詐騙金流，服務對象為台灣 VASP 業者的法遵篩查。核心賣點是**可解釋性**：每個風險判定都附帶結構證據——中心性異常、社群歸屬、資金路徑圖樣——而非黑箱分數。
+ChainLens 以社會網路分析（SNA）與洗錢圖樣偵測虛擬資產詐騙金流，服務對象為台灣 VASP 業者的法遵篩查。核心賣點是**可解釋性**：每個風險判定都附帶結構證據——中心性異常、社群歸屬、資金路徑圖樣——而非黑箱分數。
+
+**兩條線分清楚：**
+- **即時出金審查**（API `/screen`、網站、Streamlit）＝洗錢圖樣規則＋SNA 結構分數＋資金路徑風險傳導，不需要標註資料。
+- **圖神經網路（GCN／GraphSAGE）**＝在 Elliptic 公開資料集上的**離線研究基準**，目前**尚未接入即時審查**：劇本圖與 TRON 即時圖沒有 Elliptic 的 165 維交易特徵，且 serverless 部署無法載入 PyTorch。`generate_evidence()` 保留了 `model_score` 介面，待在地標註資料集建立後接入。
 
 ## 系統架構
 
@@ -71,6 +75,10 @@ make download-data
 | Random Forest | 原始 165 維 | **0.907** | **0.725** | **0.806** | **0.795** |
 
 > 訓練設定：CPU、200 epochs、hidden 64、lr 0.01、加權 CrossEntropy（逆類別頻率）、weight decay 5e-4、seed 42；SNA 特徵＝in/out degree、PageRank、k-core、近似 betweenness（64 源點）z-score。五列為同一次完整資料集實測（2026-07-03）。
+
+> 驗證：`make eval`（`python -m chainlens.models.evaluate`）直接載入 `checkpoints/` 重算，Random Forest、GraphSAGE＋RMP、GCN 三列與上表一致，並輸出逐時間段 F1 至 `research/results/checkpoint_eval.json`。`checkpoints/sage.pt` 已被 SNA 消融版本覆蓋，GraphSAGE 原始版一列為訓練當時紀錄。
+
+> 逐期觀察：測試期第 35–42 期 Random Forest F1 為 0.78–0.97；**第 43 期起三個模型同時跌到接近 0**（Weber et al. 2019 指出該期起暗網市場關閉、行為型態改變）。只靠歷史標註訓練的模型追不上手法轉變，這是即時審查改以結構圖樣主動偵測的原因。網站研究成果頁有互動圖。
 
 > 與文獻一致的兩個結論：**Random Forest 仍是最強基線**（重現 Weber et al. 2019 的 RF≈0.79–0.83），且 **reverse message passing（AAAI 2024 Multi-GNN）讓 GraphSAGE F1 +4.1pp**（0.620→0.661）——有向交易圖的入邊/出邊訊號確實互補。詳見 [docs/RESEARCH.md](docs/RESEARCH.md)。
 

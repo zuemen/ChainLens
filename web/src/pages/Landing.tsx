@@ -32,7 +32,7 @@ const METRICS = [
   { value: '0.806', label: 'Random Forest F1', note: 'Elliptic 公開資料集，illicit 類別，官方時間切分' },
   { value: '203,769', label: '基準資料節點數', note: 'Elliptic 比特幣交易圖' },
   { value: '795', label: '真實鏈上實測節點', note: '以 TronGrid 擷取真實 TRON 地址的 USDT 2 階金流圖（本機實測；公開站為保護 API 額度停用即時查詢）' },
-  { value: '147', label: '自動化測試', note: 'pytest 101＋vitest 46，GitHub Actions CI' },
+  { value: '150', label: '自動化測試', note: 'pytest 101＋vitest 49，GitHub Actions CI' },
 ]
 
 const DONE = [
@@ -49,6 +49,7 @@ const ROADMAP = [
   'Neo4j 圖資料庫（現為記憶體圖）',
   '比特幣／以太坊即時擷取',
   '臺灣在地標註資料集',
+  'GNN 模型接入即時審查（目前為離線研究基準）',
 ]
 
 function ServiceStatus() {

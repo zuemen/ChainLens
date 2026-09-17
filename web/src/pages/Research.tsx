@@ -1,4 +1,6 @@
+import { GnnExplainer } from '../components/GnnExplainer'
 import { Panel } from '../components/Panel'
+import { RESEARCH_EVAL, StepF1Chart } from '../components/StepF1Chart'
 
 const METRICS = [
   { model: 'GCN', features: '原始 165 維', p: 0.48, r: 0.535, f1: 0.506, auc: 0.524 },
@@ -39,17 +41,36 @@ export default function Research() {
     <div className="space-y-8">
       <div>
         <h1 className="text-4xl font-black leading-tight">研究成果</h1>
-        <p className="mt-3 max-w-3xl leading-relaxed text-muted">
-          這一頁是<strong className="text-ink">模型基準研究</strong>：在國際公開的 Elliptic 比特幣資料集（203,769 筆交易節點）上，
-          比較圖神經網路與傳統模型偵測非法交易的能力。
-        </p>
-        <p className="mt-2 max-w-3xl leading-relaxed text-muted">
-          它與出金審查的關係：出金審查引擎靠的是<strong className="text-ink">洗錢圖樣規則＋資金路徑風險傳導</strong>，不需要標註資料即可運作；
-          模型分數是可選配的輔助訊號，等在地標註資料集建立後再接入。
+        <p className="mt-3 max-w-3xl text-lg leading-relaxed text-muted">
+          在國際公開的 Elliptic 比特幣資料集（203,769 筆交易節點）上，比較圖神經網路（GNN）與傳統模型偵測非法交易的能力。
         </p>
       </div>
 
-      <Panel title="F1 比較（illicit 類別，越長越好）">
+      <section className="grid gap-6 border-y-2 border-ink py-6 md:grid-cols-3">
+        <div>
+          <div className="kicker">結論 1</div>
+          <p className="mt-2 font-serif text-xl font-bold">Random Forest 最強（F1 0.806）</p>
+          <p className="mt-1 leading-relaxed text-muted">GNN 最佳為 GraphSAGE＋反向訊息傳遞（0.661），與國際文獻一致。</p>
+        </div>
+        <div>
+          <div className="kicker">結論 2</div>
+          <p className="mt-2 font-serif text-xl font-bold">手法一變，所有模型同時失效</p>
+          <p className="mt-1 leading-relaxed text-muted">第 43 期起三個模型的 F1 都掉到接近 0：靠歷史標註學出來的模型，追不上新手法。</p>
+        </div>
+        <div>
+          <div className="kicker">所以產品這樣設計</div>
+          <p className="mt-2 font-serif text-xl font-bold">即時審查靠圖樣＋路徑，不靠模型</p>
+          <p className="mt-1 leading-relaxed text-muted">
+            出金審查用洗錢圖樣規則與資金路徑風險傳導，不需標註資料；GNN 目前是離線研究基準，尚未接入即時審查。
+          </p>
+        </div>
+      </section>
+
+      <Panel title="圖神經網路在做什麼">
+        <GnnExplainer />
+      </Panel>
+
+      <Panel title="整體成績：F1（illicit 類別，越長越好）">
         <ul className="space-y-3">
           {[...METRICS].sort((a, b) => b.f1 - a.f1).map((row) => (
             <li key={`${row.model}-${row.features}`} className="grid grid-cols-[minmax(0,14rem)_1fr_3.5rem] items-center gap-4">
@@ -70,6 +91,19 @@ export default function Research() {
             </li>
           ))}
         </ul>
+      </Panel>
+
+      <Panel title="隨時間的表現：測試期逐期 F1">
+        <p className="mb-5 max-w-3xl leading-relaxed text-muted">
+          測試期共 {RESEARCH_EVAL.test_nodes.toLocaleString('en-US')} 筆有標註交易，其中非法 {RESEARCH_EVAL.test_illicit.toLocaleString('en-US')} 筆。
+          第 35–42 期 Random Forest 穩定在 0.78–0.97；第 43 期起，Weber et al.（2019）指出暗網市場關閉、犯罪行為型態改變，三個模型的 F1 同時跌到接近 0。
+          這正是「只靠歷史標註訓練」的限制，也是出金審查改以結構圖樣主動偵測的原因。
+        </p>
+        <StepF1Chart />
+        <p className="mt-4 text-sm leading-relaxed text-muted">
+          數值由 <span className="tabular">python -m chainlens.models.evaluate</span> 直接載入 checkpoints/ 重算（{RESEARCH_EVAL.generated}），與上表一致。
+          第 45、46 期非法交易只有 5 筆與 2 筆，該兩期的 F1 波動不具統計意義。
+        </p>
       </Panel>
 
       <section className="grid gap-5 md:grid-cols-3">
@@ -107,7 +141,8 @@ export default function Research() {
           </table>
         </div>
         <p className="mt-4 text-sm leading-relaxed text-muted">
-          五列為同一次完整資料集實測。RMP＝反向訊息傳遞（reverse message passing）。
+          五列為同一次（2026/7/3）完整資料集實測。RMP＝反向訊息傳遞（reverse message passing）。
+          Random Forest、GraphSAGE＋RMP、GCN 三列已由現存檢查點重算驗證；GraphSAGE 原始版的檢查點已被消融實驗覆蓋，該列為訓練當時紀錄。
           訓練設定：CPU、200 epochs、hidden 64、lr 0.01、加權 CrossEntropy（逆類別頻率）、
           weight decay 5e-4、seed 42；SNA 特徵為 in/out degree、PageRank、k-core、
           近似 betweenness（64 源點）之 z-score。

@@ -44,6 +44,11 @@
   --color-edge: #4A4740;
   --color-pass-on-dark: #6FCF97;  /* 9.92:1 — 「放行」字樣 */
 
+  /* 研究頁圖表的類別色（依序固定指派，不循環）。validate_palette.js 於 panel #FBF9F4 六項全過 */
+  --color-series-1: #C2410C;      /* Random Forest */
+  --color-series-2: #1F6FB2;      /* GraphSAGE + RMP */
+  --color-series-3: #8C6A12;      /* GCN */
+
   --color-ring: #B23F0E;         /* 鍵盤焦點環 */
 
   --font-sans: "Noto Sans TC", system-ui, sans-serif;

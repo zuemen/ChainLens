@@ -38,7 +38,10 @@ load_dotenv()  # 讀取 .env（TRONGRID_API_KEY / CHAINLENS_API_KEY）
 
 app = FastAPI(
     title="ChainLens API",
-    description="SNA + GNN 虛擬資產詐騙金流風險評分（附結構證據）",
+    description=(
+        "虛擬資產詐騙金流出金審查與風險評分：洗錢圖樣規則＋SNA 結構分數＋資金路徑風險傳導，"
+        "每個判定附結構證據。GNN 模型為 Elliptic 離線研究基準，未接入本 API。"
+    ),
     version="0.1.0",
 )
 
