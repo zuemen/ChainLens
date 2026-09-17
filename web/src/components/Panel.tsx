@@ -10,10 +10,10 @@ export function Panel({
   children: ReactNode
 }) {
   return (
-    <section className="rounded-lg border border-line bg-panel p-5">
+    <section className="border border-line border-t-2 border-t-ink bg-panel p-6">
       {(title || actions) && (
         <header className="mb-4 flex items-center justify-between gap-4">
-          {title && <h2 className="text-base font-semibold text-ink">{title}</h2>}
+          {title && <h2 className="text-lg font-bold text-ink">{title}</h2>}
           {actions}
         </header>
       )}

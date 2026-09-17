@@ -2,6 +2,8 @@
 
 **基於社會網路分析之虛擬資產詐騙金流偵測平台**
 
+**線上 Demo：<https://chain-lens-beta.vercel.app>**（出金審查情境、金流圖譜工作台、研究成果；API 文件在 [`/docs`](https://chain-lens-beta.vercel.app/docs)）。Demo 情境為合成劇本資料。
+
 ChainLens 以社會網路分析（SNA）＋圖神經網路（GNN）偵測虛擬資產詐騙金流，服務對象為台灣 VASP 業者的法遵篩查。核心賣點是**可解釋性**：每個風險判定都附帶結構證據——中心性異常、社群歸屬、資金路徑圖樣——而非黑箱分數。
 
 ## 系統架構
@@ -160,6 +162,13 @@ vercel --prod          # 正式部署 → https://<你的專案>.vercel.app
 - **視覺 Demo 最簡單的免費去處**：[Streamlit Community Cloud](https://share.streamlit.io)——連 GitHub、主檔選 `chainlens/app/workbench.py`、免 Docker 一鍵上線。
 
 ### Demo 網站（web/）
+
+**預設部署方式：與 API 同源。** `npm --prefix web run build:site` 把前端建置到 repo 根目錄的 `public/`（已入版控），
+FastAPI 在 `/` 提供網站、前端路由（`/screening` 等）回 `index.html`，API 路由與 `/docs` 不變。
+push 到 main 後 Vercel 自動部署，同一個網址同時是網站與 API，前端以同源相對路徑呼叫 API，不需要 CORS 設定。
+**改了 `web/` 之後要重跑 `build:site` 並把 `public/` 一起 commit**，否則線上仍是舊版頁面。
+
+以下「獨立 Vercel 專案」為備選部署方式（前端走 CDN、無冷啟動），兩者可並存：
 
 `web/` 是對外的 Demo 網站（Vite + React），部署為**獨立的 Vercel 專案**，
 與 API 專案分開，避免動到 API 的框架偵測設定。

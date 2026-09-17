@@ -1,49 +1,80 @@
 @import "tailwindcss";
 
 @theme {
-  /* 表面：slate 階系，可從同一階系推導整套 UI 色 */
-  --color-base: #0F172A;         /* slate-900 */
-  --color-panel: #1B2336;
-  --color-panel-raised: #222B40;
+  /* 表面：紙色卷宗。與決賽簡報同一套識別（紙／墨／證據橘） */
+  --color-base: #F3EFE6;
+  --color-panel: #FBF9F4;
+  --color-panel-raised: #FFFFFF;
 
   /* 邊框分兩階：裝飾線不受 3:1 規範，控制項邊界必須達標 */
-  --color-line: #334155;         /* 1.72:1 — 僅供分隔線與面板外框 */
-  --color-line-strong: #64748B;  /* 3.75:1 — 表單輸入框與控制項邊界 */
+  --color-line: #CBC3B1;         /* 1.53:1 於 base — 僅供分隔線與面板外框 */
+  --color-line-strong: #7A7362;  /* 4.11:1 — 表單輸入框與控制項邊界 */
 
-  --color-ink: #F8FAFC;          /* 17.06:1 於 base */
-  --color-muted: #94A3B8;        /* 6.96:1 於 base、6.11:1 於 panel */
+  --color-ink: #17150F;          /* 15.90:1 於 base */
+  --color-muted: #5F594D;        /* 6.05:1 於 base、6.60:1 於 panel */
 
-  /* 風險語意色：文字用，兩種底色皆 ≥4.5:1 */
-  --color-risk-high: #F87171;    /* 6.45 / 5.66 — 不可改回 #EF4444，它在面板上只有 4.16 */
-  --color-risk-med: #F59E0B;     /* 8.31 / 7.30 */
-  --color-risk-low: #22C55E;     /* 7.83 / 6.88 */
+  /* 風險語意色：文字用，base 與 panel 兩種底色皆 ≥4.5:1 */
+  --color-risk-high: #B8231A;    /* 5.56 / 6.06 */
+  --color-risk-med: #8F5200;     /* 5.42 / 5.91 */
+  --color-risk-low: #1D6E46;     /* 5.43 / 5.92 */
 
-  /* 圖譜專用（非文字，門檻 3:1，繪製於 canvas） */
+  /* 品牌強調：橘色只給資金路徑與關鍵數字 */
+  --color-signal: #E4571F;       /* 大字與圖形用（3.22:1；於 dark 為 5.10:1），不可用於紙色底的內文小字 */
+  --color-signal-ink: #B23F0E;   /* 5.07:1 — 文字用 */
+
+  /* 深色區塊（首頁主視覺、圖譜畫布外框、行動呼籲） */
+  --color-dark: #121110;
+  --color-on-dark: #F3EFE6;
+  --color-on-dark-muted: #A8A294;  /* 7.42:1 於 dark */
+  --color-dark-line: #3A3833;
+
+  /* 圖譜專用（非文字，門檻 3:1，繪製於 canvas）——畫布維持深色，節點色才分得開 */
   --color-graph-bg: #0d1219;
-  --color-focus: #f1c40f;        /* 11.31:1 於畫布 */
-  --color-path: #f39c12;         /* 8.57:1 於畫布 */
+  --color-focus: #f1c40f;
+  --color-path: #f39c12;
 
-  --color-ring: #38BDF8;         /* 8.33:1 — 鍵盤焦點環 */
+  --color-ring: #B23F0E;         /* 鍵盤焦點環 */
 
-  --font-sans: "IBM Plex Sans", "Noto Sans TC", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-sans: "Noto Sans TC", system-ui, sans-serif;
+  --font-serif: "Noto Serif TC", "Songti TC", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
 html {
   background-color: var(--color-base);
   color: var(--color-ink);
-  color-scheme: dark;
+  color-scheme: light;
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2 {
+  font-family: var(--font-serif);
+  letter-spacing: 0.01em;
 }
 
 /* 地址與數值一律等寬且等距數字，這是法遵工具的閱讀慣例，也避免數字跳動 */
 .tabular {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+}
+
+/* 小標：等寬、字距拉開，全站章節編號共用 */
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--color-signal-ink);
+}
+.on-dark .kicker {
+  color: var(--color-signal);
 }
 
 /* 表單控制項的邊界是識別它的唯一依據，必須用達標的那一階 */
@@ -56,6 +87,61 @@ select {
   outline: 2px solid var(--color-ring);
   outline-offset: 2px;
 }
+.on-dark :focus-visible {
+  outline-color: var(--color-signal);
+}
+
+/* ── 首頁主視覺：資金路徑動畫 ─────────────────────────── */
+.flow-path {
+  stroke-dasharray: 620;
+  stroke-dashoffset: 620;
+  animation: flow-draw 2.4s cubic-bezier(0.6, 0, 0.2, 1) 0.6s forwards;
+}
+.flow-node {
+  opacity: 0;
+  animation: flow-pop 0.5s ease-out forwards;
+}
+.flow-target {
+  transform-origin: 920px 620px;
+  animation: flow-pulse 2.2s ease-in-out 3s infinite;
+}
+@keyframes flow-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes flow-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes flow-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.25);
+  }
+}
+
+/* 區塊進場：只在首屏用一次，避免到處亂動 */
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: reveal-up 0.7s ease-out forwards;
+}
+@keyframes reveal-up {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -64,5 +150,13 @@ select {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  .flow-path {
+    stroke-dashoffset: 0;
+  }
+  .flow-node,
+  .reveal {
+    opacity: 1;
+    transform: none;
   }
 }

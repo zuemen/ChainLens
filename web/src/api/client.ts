@@ -3,6 +3,9 @@ import type { ScreenResult, WorkbenchPayload } from './types'
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '')
 
+/** Swagger 互動文件；API 與網站同源時就是 /docs */
+export const API_DOCS_URL = `${API_BASE}/docs`
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,

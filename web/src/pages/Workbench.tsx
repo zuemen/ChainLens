@@ -55,7 +55,7 @@ export default function Workbench() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">金流圖譜工作台</h1>
+        <h1 className="text-4xl font-black leading-tight">金流圖譜工作台</h1>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
           內建範例圖含集資扇入、快速分散、剝洋蔥鏈三種圖樣。也可輸入 TRON 主網地址，
           即時抓取 2-hop USDT 金流圖——真實查詢約需 10–30 秒。
@@ -70,7 +70,7 @@ export default function Workbench() {
               value={address}
               onChange={(event) => setAddress(event.target.value.trim())}
               placeholder="T 開頭主網地址，34 字元"
-              className="tabular mt-1 w-full rounded border border-line bg-panel-raised p-2"
+              className="tabular mt-1 w-full border border-line bg-panel-raised p-2.5"
             />
             {address && !addressValid && (
               <span className="mt-1 block text-xs" style={{ color: 'var(--color-risk-med)' }}>
@@ -83,7 +83,7 @@ export default function Workbench() {
             type="button"
             onClick={() => load('tron')}
             disabled={!addressValid || loading}
-            className="rounded bg-ink px-5 py-2 font-semibold text-base disabled:opacity-40"
+            className="bg-ink px-6 py-2.5 font-bold text-base hover:bg-signal-ink disabled:opacity-40"
           >
             {loading ? '查詢中…' : '抓取真實金流'}
           </button>
@@ -92,7 +92,7 @@ export default function Workbench() {
             type="button"
             onClick={() => load('example')}
             disabled={loading}
-            className="rounded border border-line px-5 py-2"
+            className="border border-line-strong px-5 py-2 hover:bg-panel-raised"
           >
             用內建範例圖
           </button>

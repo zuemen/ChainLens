@@ -8,7 +8,7 @@ export function ErrorNotice({
   return (
     <div
       role="alert"
-      className="flex flex-wrap items-center gap-4 rounded-lg border p-4"
+      className="flex flex-wrap items-center gap-4 border-l-4 border p-4"
       style={{ borderColor: 'var(--color-risk-med)', color: 'var(--color-risk-med)' }}
     >
       <span className="flex-1">{message}</span>
@@ -16,7 +16,7 @@ export function ErrorNotice({
         <button
           type="button"
           onClick={action.onClick}
-          className="rounded border border-current px-3 py-1 text-sm"
+          className="border border-current px-3 py-1 text-sm"
         >
           {action.label}
         </button>

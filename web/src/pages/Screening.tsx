@@ -69,7 +69,7 @@ export default function Screening() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">出金審查</h1>
+        <h1 className="text-4xl font-black leading-tight">出金審查</h1>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
           交易所用戶申請將 50 萬 USDT 提領至外部地址。該地址從未被通報、不在任何黑名單上——
           傳統名單比對會直接放行。以下展示結構化關聯追溯如何攔下它。
@@ -83,7 +83,7 @@ export default function Screening() {
             <select
               value={target}
               onChange={(event) => setTarget(event.target.value)}
-              className="tabular mt-1 w-full rounded border border-line bg-panel-raised p-2"
+              className="tabular mt-1 w-full border border-line bg-panel-raised p-2.5"
             >
               {TARGETS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -101,7 +101,7 @@ export default function Screening() {
               step={10000}
               value={amount}
               onChange={(event) => setAmount(Number(event.target.value))}
-              className="tabular mt-1 w-full rounded border border-line bg-panel-raised p-2"
+              className="tabular mt-1 w-full border border-line bg-panel-raised p-2.5"
             />
           </label>
 
@@ -109,7 +109,7 @@ export default function Screening() {
             type="button"
             onClick={run}
             disabled={loading}
-            className="rounded bg-ink px-5 py-2 font-semibold text-base disabled:opacity-50"
+            className="bg-ink px-6 py-2.5 font-bold text-base hover:bg-signal-ink disabled:opacity-50"
           >
             {loading ? '審查中…' : '執行出金審查'}
           </button>
@@ -128,7 +128,7 @@ export default function Screening() {
 
           {result.associations.length > 0 && (
             <Panel title="資金關聯證據鏈">
-              <ul className="space-y-3 text-sm">
+              <ul className="grid gap-x-10 gap-y-4 text-sm md:grid-cols-2">
                 {result.associations.map((association) => (
                   <li key={association.risky_node} className="border-l-2 border-line pl-4">
                     <div className="tabular">
@@ -165,7 +165,7 @@ export default function Screening() {
                 <button
                   type="button"
                   onClick={downloadStr}
-                  className="rounded border border-line px-3 py-1 text-sm"
+                  className="border border-line-strong px-3 py-1 text-sm hover:bg-panel-raised"
                 >
                   下載草稿（.txt）
                 </button>

@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from chainlens.api import main as api_main
 from chainlens.api.main import app
 
 client = TestClient(app)
@@ -102,17 +103,56 @@ def test_tron_live_fetch_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> No
     assert response.status_code == 503
 
 
-def test_root_redirects_to_docs() -> None:
-    """根路徑不應回 404：導向互動式 API 文件，讓瀏覽器訪客有落點。"""
+def test_root_redirects_to_docs_without_site(tmp_path, monkeypatch) -> None:
+    """純 API 部署（沒有建置 Demo 網站）時，根路徑導向互動式 API 文件。"""
+    monkeypatch.setattr(api_main, "SITE_DIR", tmp_path)
     response = client.get("/", follow_redirects=False)
     assert response.status_code in (307, 308)
     assert response.headers["location"] == "/docs"
+    assert "swagger" in client.get("/").text.lower()
 
 
-def test_root_follows_through_to_docs() -> None:
-    response = client.get("/")
+def _fake_site(tmp_path, monkeypatch) -> None:
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "index.html").write_text("<!doctype html><title>site</title>", encoding="utf-8")
+    (tmp_path / "assets" / "app.js").write_text("console.log(1)", encoding="utf-8")
+    monkeypatch.setattr(api_main, "SITE_DIR", tmp_path)
+
+
+def test_root_serves_site_when_built(tmp_path, monkeypatch) -> None:
+    _fake_site(tmp_path, monkeypatch)
+    response = client.get("/", follow_redirects=False)
     assert response.status_code == 200
-    assert "swagger" in response.text.lower()
+    assert "<title>site</title>" in response.text
+    assert response.headers["cache-control"] == "no-cache"
+
+
+def test_site_assets_and_spa_routes(tmp_path, monkeypatch) -> None:
+    """靜態資產照實回傳；前端路由（重新整理 /screening）回 index.html 而非 404。"""
+    _fake_site(tmp_path, monkeypatch)
+    assert client.get("/assets/app.js").text == "console.log(1)"
+    assert "<title>site</title>" in client.get("/screening").text
+    assert client.get("/no-such-page").status_code == 404
+    # API 路由不受 catch-all 影響
+    assert client.get("/health").json() == {"status": "ok"}
+    assert "swagger" in client.get("/docs").text.lower()
+
+
+def test_site_blocks_path_traversal(tmp_path, monkeypatch) -> None:
+    site_dir = tmp_path / "public"
+    site_dir.mkdir()
+    (tmp_path / "secret.txt").write_text("nope", encoding="utf-8")
+    _fake_site(site_dir, monkeypatch)
+    response = client.get("/%2e%2e/secret.txt")
+    assert response.status_code == 404
+    assert "nope" not in response.text
+
+
+def test_spa_route_falls_back_to_root_without_site(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(api_main, "SITE_DIR", tmp_path)
+    response = client.get("/screening", follow_redirects=False)
+    assert response.status_code in (307, 308)
+    assert response.headers["location"] == "/"
 
 
 def test_favicon_no_content() -> None:

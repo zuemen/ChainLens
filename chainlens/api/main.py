@@ -26,7 +26,7 @@ import networkx as nx
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, Response
+from fastapi.responses import FileResponse, RedirectResponse, Response
 from pydantic import BaseModel, Field, model_validator
 
 from chainlens.api.serialize import graph_to_json, sna_table
@@ -152,10 +152,27 @@ class GraphRequest(BaseModel):
     address: str | None = Field(default=None, max_length=64)
 
 
+# Demo 網站（web/ 的建置產物，`npm --prefix web run build:site` 輸出至 repo 根目錄 public/）。
+# 與 API 同源提供：訪客打開網址看到的是網站而不是 Swagger，前端呼叫 API 也免 CORS。
+SITE_DIR = Path(__file__).resolve().parents[2] / "public"
+# 前端路由（react-router）。重新整理或直接開這些網址時須回 index.html 交給前端處理。
+SPA_ROUTES = {"screening", "workbench", "research"}
+# index.html 不可被快取，否則重新部署後訪客仍拿到指向舊 hash 資產的舊頁
+_NO_CACHE = {"Cache-Control": "no-cache"}
+
+
+def _site_index() -> Path | None:
+    index = SITE_DIR / "index.html"
+    return index if index.is_file() else None
+
+
 @app.get("/", include_in_schema=False)
-def root() -> RedirectResponse:
-    """本服務為純 API，無前端頁面；根路徑導向互動式文件供瀏覽器訪客試打。"""
-    return RedirectResponse("/docs")
+def root() -> Response:
+    """有建置好的 Demo 網站就回網站首頁；沒有（純 API 部署）則導向互動式文件。"""
+    index = _site_index()
+    if index is None:
+        return RedirectResponse("/docs")
+    return FileResponse(index, headers=_NO_CACHE)
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -337,3 +354,25 @@ def score(
         "label": evidence["label"],
         "evidence": [evidence],
     }
+
+
+# 必須註冊在所有 API 路由之後：catch-all 只接沒有其他路由認領的 GET
+@app.get("/{path:path}", include_in_schema=False)
+def site(path: str) -> Response:
+    """Demo 網站的靜態資產與前端路由。"""
+    is_spa_route = path.split("/", 1)[0] in SPA_ROUTES
+    index = _site_index()
+    if index is None:
+        # 靜態檔改由 CDN 提供、函式內沒有 public/ 時，前端路由退回首頁而不是 404
+        if is_spa_route:
+            return RedirectResponse("/")
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    root_dir = SITE_DIR.resolve()
+    candidate = (root_dir / path).resolve()
+    # resolve 後必須仍在 public/ 之內，擋掉 ../ 路徑穿越
+    if candidate.is_file() and candidate.is_relative_to(root_dir):
+        return FileResponse(candidate)
+    if is_spa_route:
+        return FileResponse(index, headers=_NO_CACHE)
+    raise HTTPException(status_code=404, detail="Not Found")

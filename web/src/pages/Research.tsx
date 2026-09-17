@@ -27,7 +27,7 @@ export default function Research() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold">研究成果</h1>
+        <h1 className="text-4xl font-black leading-tight">研究成果</h1>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
           遵守 Elliptic 官方時間切分（train ≤ 34 期 / test ≥ 35 期）避免資料洩漏。
           以下為 illicit 類別指標，五列為同一次完整資料集實測。
