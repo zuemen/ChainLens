@@ -26,8 +26,8 @@ test('出金審查 Demo 全流程', async ({ page }) => {
 
 test('對照組不被誤殺', async ({ page }) => {
   await page.goto('/screening')
-  await page.getByRole('combobox').selectOption('TNormalUser01')
-  await page.getByRole('button', { name: '執行出金審查' }).click()
+  // 點情境卡即切換並直接審查
+  await page.getByRole('radio', { name: /正常用戶/ }).click()
   // exact: true — narrative_zh 也會複述「予以放行」，鎖定決策卡欄位本身
   await expect(page.getByText('予以放行', { exact: true })).toBeVisible({ timeout: 30_000 })
 })

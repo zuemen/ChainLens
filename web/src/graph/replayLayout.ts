@@ -36,6 +36,8 @@ function columnOf(id: string, role: string): number | null {
       return 4 + Number(id.at(-1) ?? 0)
     case 'otc':
       return 7
+    case 'downstream':
+      return 8
     default:
       return null
   }
@@ -88,6 +90,9 @@ export function layoutReplay(graph: GraphPayload, target: string): Map<string, R
     if (column !== null) columns.set(column, [...(columns.get(column) ?? []), node.id])
   }
   const roleOf = new Map(graph.nodes.map((node) => [node.id, node.role]))
+  // 延伸情境多一欄（第 3 階下游地址）時，整體欄距等比縮小，舞台寬度不變
+  const maxColumn = Math.max(7, ...columns.keys())
+  const gap = (COLUMN_GAP * 7) / maxColumn
 
   for (const column of [...columns.keys()].sort((a, b) => a - b)) {
     const ids = columns.get(column) as string[]
@@ -111,7 +116,7 @@ export function layoutReplay(graph: GraphPayload, target: string): Map<string, R
       placed.set(id, {
         id,
         role: roleOf.get(id) as string,
-        x: COLUMN_X0 + column * COLUMN_GAP,
+        x: COLUMN_X0 + column * gap,
         y: ys[index],
         distance: distances.get(id) ?? null,
       })

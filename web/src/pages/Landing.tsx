@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { CaseReplay } from '../components/CaseReplay'
-import { CASES, KEY_FACTS, MILESTONES, VASP_DEFENSE, type Source } from '../content/briefing'
+import { CASES, KEY_FACTS, MILESTONES, PAIN_POINTS, STRENGTHS, VASP_DEFENSE, type Source } from '../content/briefing'
 
 const STEPS = [
   {
@@ -30,7 +30,7 @@ const COMPARE = [
 const METRICS = [
   { value: '0.806', label: '模型研究最佳 F1', note: 'Elliptic 國際公開資料集（203,769 筆交易）' },
   { value: '795', label: '真實鏈上實測節點', note: 'TRON 地址 USDT 兩層金流圖（本機實測）' },
-  { value: '150', label: '自動化測試', note: '持續整合，每次修改自動執行' },
+  { value: '160', label: '自動化測試', note: '持續整合，每次修改自動執行' },
   { value: '100%', label: '原始碼公開', note: '判定邏輯可檢視、可重現' },
 ]
 
@@ -265,15 +265,40 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── 參 現行機制比較 ── */}
+      {/* ── 參 痛點 → 解方 ── */}
       <section className="mx-auto max-w-6xl px-6 py-20 2xl:max-w-7xl">
         <SectionHead
           index="參"
-          kicker="定位"
-          title="補上名單比對與旅行規則之外的那一塊"
-          lead="旅行規則讓業者知道「收付款人是誰」；但從未被通報的新地址，需要從資金結構判斷風險。三者互補，而非取代。"
+          kicker="問題與解方"
+          title="六個痛點，鏈鏡逐一對應"
+          lead="左欄是監理與業者實際遇到的問題（均附出處），右欄是鏈鏡的做法，以及在本站哪裡可以親眼看到。"
         />
-        <div className="mt-10 hidden overflow-x-auto md:block">
+        <ol className="mt-12 space-y-4">
+          {PAIN_POINTS.map((item, index) => (
+            <li key={item.pain} className="grid border border-line bg-panel md:grid-cols-[1fr_auto_1fr]">
+              <div className="p-6">
+                <div className="text-sm font-bold text-risk-high">痛點 {index + 1}</div>
+                <h3 className="mt-1 font-serif text-xl font-bold text-ink">{item.pain}</h3>
+                <p className="mt-2 leading-relaxed text-muted">{item.evidence}</p>
+                <p className="mt-2 text-xs">
+                  來源：<SourceLink source={item.source} />
+                </p>
+              </div>
+              <div className="hidden items-center bg-brand px-3 text-2xl font-black text-gold-on-dark md:flex" aria-hidden="true">→</div>
+              <div className="bg-brand p-6 text-white">
+                <div className="text-sm font-bold text-gold-on-dark">鏈鏡的解方</div>
+                <p className="mt-1 text-lg leading-relaxed">{item.solution}</p>
+                <p className="mt-3 text-sm text-on-dark-muted">在哪裡看得到：{item.seeIt}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+
+        <h3 className="mt-16 font-serif text-2xl font-bold text-brand">與現行兩種機制互補</h3>
+        <p className="mt-2 max-w-3xl leading-relaxed text-muted">
+          旅行規則讓業者知道「收付款人是誰」；但從未被通報的新地址，需要從資金結構判斷風險。三者互補，而非取代。
+        </p>
+        <div className="mt-6 hidden overflow-x-auto md:block">
           <table className="w-full min-w-[640px] border-collapse text-left">
             <thead>
               <tr className="font-serif text-lg">
@@ -325,8 +350,25 @@ export default function Landing() {
       {/* ── 伍 方法 ── */}
       <section className="border-b border-line bg-panel">
         <div className="mx-auto max-w-6xl px-6 py-20 2xl:max-w-7xl">
-          <SectionHead index="伍" kicker="分析方法" title="四個步驟，每一步都可以被檢查" />
-          <ol className="mt-12 grid gap-6 md:grid-cols-4">
+          <SectionHead
+            index="伍"
+            kicker="強項與方法"
+            title="四個強項，每一項都能在 Demo 裡驗證"
+          />
+          <ul className="mt-12 grid gap-6 md:grid-cols-2">
+            {STRENGTHS.map((item) => (
+              <li key={item.title} className="grid grid-cols-[auto_1fr] gap-5 bg-brand p-6 text-white">
+                <span className="mt-1 h-10 w-1.5 bg-gold-on-dark" aria-hidden="true" />
+                <div>
+                  <h3 className="font-serif text-2xl font-bold">{item.title}</h3>
+                  <p className="mt-2 text-lg leading-relaxed text-on-dark-muted">{item.body}</p>
+                  <p className="mt-3 border-t border-dark-line pt-3 text-sm text-gold-on-dark">實測：{item.proof}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <h3 className="mt-16 font-serif text-2xl font-bold text-brand">怎麼做到：四個步驟，每一步都可以被檢查</h3>
+          <ol className="mt-6 grid gap-6 md:grid-cols-4">
             {STEPS.map((step, index) => (
               <li key={step.title} className="border-t-4 border-brand bg-base p-6">
                 <div className="font-serif text-3xl font-black text-gold">{index + 1}</div>

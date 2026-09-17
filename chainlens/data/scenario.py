@@ -26,10 +26,14 @@ ROLE_ZH = {
     "peel_side": "剝離小額地址",
     "otc": "OTC 出金地址",
     "normal": "正常交易地址",
+    "downstream": "下游收款地址",
 }
 
 WITHDRAWAL_TARGET = "TOtcOut01"  # 交易所用戶申請出金之目標地址（可疑）
 NORMAL_TARGET = "TNormalUser01"  # 對照組：正常用戶出金地址
+DOWNSTREAM_TARGET = "TDownstream01"  # 延伸情境：贓款自 OTC 地址再轉一手的下游地址
+# 出金審查 Demo 可選的五個情境（順序即前端顯示順序）
+SCREEN_TARGETS = (WITHDRAWAL_TARGET, DOWNSTREAM_TARGET, "TMule03", "TVictim01", NORMAL_TARGET)
 WITHDRAWAL_AMOUNT_USDT = 500_000.0  # 提案書情境：50 萬 USDT 提領
 
 
@@ -37,8 +41,12 @@ def _add(g: nx.DiGraph, u: str, v: str, amount: float, ts: int) -> None:
     g.add_edge(u, v, amount=amount, timestamp=ts)
 
 
-def load_withdrawal_scenario() -> nx.DiGraph:
+def load_withdrawal_scenario(with_downstream: bool = False) -> nx.DiGraph:
     """建構 50 萬 USDT 假投資詐騙劇本圖。
+
+    with_downstream：延伸情境——OTC 出金地址事後又把款項轉給一個新地址（第 3 階）。
+    另開旗標而非直接加進基準圖，是因為多一個節點會改變全圖百分位，
+    招牌情境的 0.73／0.33／0.60 會跟著漂移（已有測試鎖定）。
 
     節點屬性：role（英文角色鍵，見 ROLE_ZH）。
     圖屬性：center（集資主錢包）、withdrawal_target、normal_target、
@@ -147,4 +155,7 @@ def load_withdrawal_scenario() -> nx.DiGraph:
             "該地址從未被通報，但與假投資詐騙集資主錢包存在二階資金關聯。"
         ),
     )
+    if with_downstream:
+        g.add_node(DOWNSTREAM_TARGET, role="downstream")
+        _add(g, WITHDRAWAL_TARGET, DOWNSTREAM_TARGET, 120_000.0, t0 + 9_000)
     return g

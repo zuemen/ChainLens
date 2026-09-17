@@ -141,3 +141,66 @@ export const VASP_DEFENSE = {
   gap: '聯防靠的是「已被通報」的帳戶。從未被通報、但資金來自詐騙網路的出金地址，正是鏈鏡要補上的缺口。',
   source: { label: 'TVBS 2025-01-22', url: 'https://news.tvbs.com.tw/local/2758583' },
 }
+
+export interface PainPoint {
+  pain: string
+  evidence: string
+  source: Source
+  solution: string
+  /** 在網站哪裡可以親眼看到 */
+  seeIt: string
+}
+
+/** 六個監理與業者痛點，逐一對應鏈鏡的解方。evidence 一律照來源原文或數字。 */
+export const PAIN_POINTS: PainPoint[] = [
+  {
+    pain: '黑名單永遠慢一步',
+    evidence: '現行聯防凍結靠的是「已被通報」的帳戶；詐騙地址用過即丟，通報時錢已經轉走。',
+    source: { label: 'TVBS 2025-01-22（刑事局與交易所聯防）', url: 'https://news.tvbs.com.tw/local/2758583' },
+    solution: '不靠名單：把 4 類洗錢手法寫成圖樣主動掃描，再從出金地址往上游追溯。地址從未被通報也攔得到。',
+    seeIt: '出金審查・情境一、三',
+  },
+  {
+    pain: '金檢點名：沒有評估提幣資金流向',
+    evidence: '金管會 2023–2025 年金檢 17 家 VASP、已對 11 家開罰，缺失包括「未深入評估被通報客戶之間的交易行為與提幣資金流向關聯性」。',
+    source: { label: '資安人 2025-11-25', url: 'https://www.informationsecurity.com.tw/article/article_detail.aspx?aid=12488' },
+    solution: '在出金當下自動追溯最多 4 層上游，約 1 秒回傳完整資金路徑與關聯階數，留下「評估過」的證據。',
+    seeIt: '出金審查・資金關聯證據鏈',
+  },
+  {
+    pain: '監控門檻是固定金額',
+    evidence: '同一份金檢指出「多數業者設定的可疑交易態樣監控金額門檻均為固定數值」。',
+    source: { label: '資安人 2025-11-25', url: 'https://www.informationsecurity.com.tw/article/article_detail.aspx?aid=12488' },
+    solution: '風險分數看資金結構、不看金額大小；並分暫緩出金／加強審查／放行三級，而不是一刀切。',
+    seeIt: '出金審查・情境二（加強審查）',
+  },
+  {
+    pain: '可疑交易申報量一年倍增',
+    evidence: '調查局 113 年洗錢防制工作年報：虛擬通貨業可疑交易報告 918 件，前一年 447 件。',
+    source: { label: '加密城市 2025-11-04（引調查局年報）', url: 'https://www.cryptocity.tw/news/suspected-money-laundering-hong-company-report' },
+    solution: '自動產出可疑交易申報（STR）草稿：可疑事由、逐筆金額與時間、完整路徑，法遵人員審閱修訂即可。',
+    seeIt: '出金審查・STR 草稿（可下載）',
+  },
+  {
+    pain: '穩定幣是非法金流的主要載體',
+    evidence: 'FATF 2026 年報告引 Chainalysis：穩定幣占 2025 年非法虛擬資產交易量 84%，且常涉及非託管錢包——旅行規則管不到的地方。',
+    source: { label: 'FATF Targeted Report on Stablecoins and Unhosted Wallets', url: 'https://www.fatf-gafi.org/en/publications/Virtualassets/targeted-report-stablecoins-unhosted-wallets.html' },
+    solution: '直接分析 TRON 鏈上的 USDT 金流，不需要對方業者提供任何資訊；與旅行規則互補。',
+    seeIt: '首頁・案件重演',
+  },
+  {
+    pain: 'AI 黑箱難以向監理與司法說明',
+    evidence: '金管會《金融業運用人工智慧（AI）指引》核心原則五：落實透明性與可解釋性。',
+    source: { label: '證交所市場觀點（金管會 AI 指引六大原則）', url: 'https://www.twse.com.tw/market_insights/zh/detail/8a8216d6904d181101905e34532c006e' },
+    solution: '每個判定都附命中的圖樣、關聯階數與資金路徑；規則與程式碼全部公開，最終決定權在法遵人員。',
+    seeIt: '出金審查・審查決策與金流圖',
+  },
+]
+
+/** 鏈鏡的四個強項：每一項都能在 Demo 裡驗證 */
+export const STRENGTHS = [
+  { title: '不靠黑名單', body: '從未被通報的地址，也能沿資金路徑攔下。', proof: '情境一：自身 0.33、關聯 0.60 → 綜合 0.73 暫緩出金' },
+  { title: '每個判定都可稽核', body: '圖樣、階數、路徑、逐筆金額與時間，全部列給你看。', proof: '13 條關聯證據、完整 STR 草稿' },
+  { title: '不誤傷被害人與正常用戶', body: '資金來源方不加風險分，結構偵測不是寧可錯殺。', proof: '12 位被害人、5 位正常用戶全數放行' },
+  { title: '三級處置，不是一刀切', body: '暫緩出金、加強審查、放行，依風險距離分級。', proof: '情境二：3 階關聯 0.53 → 加強審查' },
+]

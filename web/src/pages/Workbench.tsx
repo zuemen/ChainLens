@@ -4,6 +4,7 @@ import type { GraphNode, WorkbenchPayload } from '../api/types'
 import { ErrorNotice } from '../components/ErrorNotice'
 import { Panel } from '../components/Panel'
 import { GraphView } from '../graph/GraphView'
+import { ScenarioGraph } from '../graph/ScenarioGraph'
 
 const TRON_ADDRESS = /^T[1-9A-HJ-NP-Za-km-z]{33}$/
 
@@ -118,13 +119,12 @@ export default function Workbench() {
             <Panel
               title={`金流圖譜 · ${sourceLabel(source)}（${payload.meta.node_count} 節點 / ${payload.meta.edge_count} 邊）`}
             >
-              {/* 劇本圖有角色與敘事順序：由左至右排版、依角色著色；真實鏈上圖沒有，改用分數色階 */}
-              <GraphView
-                payload={payload}
-                layout={source?.kind === 'tron' ? 'cose' : 'dagre'}
-                scheme={source?.kind === 'tron' ? 'risk' : 'role'}
-                onSelect={handleSelect}
-              />
+              {/* 劇本圖有角色標註：用依洗錢三階段分欄的靜態圖；真實鏈上圖沒有角色，才用力導向排版 */}
+              {source?.kind === 'tron' ? (
+                <GraphView payload={payload} layout="cose" scheme="risk" onSelect={handleSelect} />
+              ) : (
+                <ScenarioGraph payload={payload} selected={selected?.id ?? null} onSelect={handleSelect} />
+              )}
               {payload.meta.truncated && (
                 <p className="mt-3 text-xs" style={{ color: 'var(--color-risk-med)' }}>
                   圖譜顯示風險最高的 {payload.meta.node_count} 個節點（原始共{' '}

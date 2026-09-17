@@ -202,3 +202,30 @@ def test_str_draft_wording_is_consistent() -> None:
     assert "綜合風險評分 0.33" not in draft
     assert "已知非法" not in draft
     assert "in_degree" not in draft
+
+
+@pytest.mark.parametrize(
+    ("target", "decision", "risk"),
+    [
+        ("TOtcOut01", "block", 0.7307),  # 自身乾淨、上游 2 階是集資主錢包
+        ("TDownstream01", "review", 0.5321),  # 贓款再轉一手：3 階關聯 → 加強審查
+        ("TMule03", "block", 1.0),  # 車手本身即命中圖樣
+        ("TVictim01", "pass", 0.2577),  # 被害人不連坐
+        ("TNormalUser01", "pass", 0.0962),  # 正常用戶
+    ],
+)
+def test_screen_demo_cases_cover_all_three_tiers(target: str, decision: str, risk: float) -> None:
+    """五個示範情境涵蓋暫緩／加強審查／放行三級處置，分數鎖定以免 Demo 與簡報漂移。"""
+    body = client.post("/screen", json={"target": target, "amount_usdt": 500000}).json()
+    assert body["decision"] == decision
+    assert body["risk_score"] == pytest.approx(risk, abs=1e-4)
+
+
+def test_downstream_case_does_not_shift_flagship_numbers() -> None:
+    """延伸情境用獨立旗標建圖，招牌情境的三個數字不得受影響。"""
+    client.post("/screen", json={"target": "TDownstream01", "amount_usdt": 500000})
+    body = client.post("/screen", json={"target": "TOtcOut01", "amount_usdt": 500000}).json()
+    assert (body["self_score"], body["association_score"]) == (
+        pytest.approx(0.3268, abs=1e-4),
+        pytest.approx(0.6, abs=1e-4),
+    )

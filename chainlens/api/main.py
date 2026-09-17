@@ -141,7 +141,7 @@ class ScoreRequest(BaseModel):
 
 
 class ScreenRequest(BaseModel):
-    """出金審查請求：目標地址限定為劇本情境中的兩個地址。"""
+    """出金審查請求：目標地址限定為劇本情境中的五個示範地址（scenario.SCREEN_TARGETS）。"""
 
     target: str = Field(max_length=64)
     amount_usdt: float = Field(gt=0)
@@ -213,11 +213,12 @@ def screen(
     """出金審查：回傳決策、關聯證據鏈、金流圖譜與 STR 草稿。"""
     _check_api_key(x_api_key)
     _rate_limit(request)
-    allowed = {scenario.WITHDRAWAL_TARGET, scenario.NORMAL_TARGET}
-    if req.target not in allowed:
+    if req.target not in scenario.SCREEN_TARGETS:
         raise HTTPException(status_code=400, detail="target 需為劇本情境中的出金地址")
 
-    g = scenario.load_withdrawal_scenario()
+    g = scenario.load_withdrawal_scenario(
+        with_downstream=req.target == scenario.DOWNSTREAM_TARGET
+    )
     pipeline: PipelineResult = run_pipeline(g)
     sna_df, partition, risk_ratios, motif_hits = pipeline
 

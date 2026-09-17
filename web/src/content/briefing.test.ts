@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CASES, KEY_FACTS, MILESTONES, VASP_DEFENSE } from './briefing'
+import { CASES, KEY_FACTS, MILESTONES, PAIN_POINTS, STRENGTHS, VASP_DEFENSE } from './briefing'
 
 /** 給監理單位看的內容：每一筆事實都必須有可點開的來源 */
 describe('briefing 內容', () => {
@@ -25,5 +25,15 @@ describe('briefing 內容', () => {
       expect(item.checkpoints.length).toBeGreaterThan(0)
     }
     expect(isUrl(VASP_DEFENSE.source.url)).toBe(true)
+  })
+
+  it('每個痛點都有出處、解方，以及在本站哪裡看得到', () => {
+    expect(PAIN_POINTS.length).toBe(6)
+    for (const item of PAIN_POINTS) {
+      expect(isUrl(item.source.url)).toBe(true)
+      expect(item.solution.length).toBeGreaterThan(0)
+      expect(item.seeIt.length).toBeGreaterThan(0)
+    }
+    expect(STRENGTHS.length).toBe(4)
   })
 })
