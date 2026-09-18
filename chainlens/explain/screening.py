@@ -12,6 +12,7 @@ k 階內存在圖樣命中節點（集資、集散、剝洋蔥），風險即沿
 
 from __future__ import annotations
 
+import math
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -19,14 +20,19 @@ from typing import Any
 import networkx as nx
 
 from chainlens.explain.evidence import PipelineResult, generate_evidence, run_pipeline
+from chainlens.models.structural import StructuralModel, default_model, node_features
 from chainlens.sna.motifs import MotifHit
 
 DEFAULT_MAX_HOPS = 4  # 關聯追溯之最大階數
 DEFAULT_DECAY = 0.6  # 每增加一階，風險傳導衰減係數
 BLOCK_THRESHOLD = 0.7  # ≥ 此分數 → 暫緩出金並人工審查
 REVIEW_THRESHOLD = 0.4  # ≥ 此分數 → 加強審查（EDD）
+# 結構模型（第二引擎）判定 ≥ 此機率、而規則引擎放行時，升為加強審查。
+# 模型不能單獨暫緩出金：暫緩必須有可稽核的證據鏈與 STR 草稿，模型只負責「把人叫來看」。
+MODEL_ESCALATE_THRESHOLD = 0.7
 
 _DECISION_ZH = {"block": "暫緩出金並啟動人工審查", "review": "加強審查（EDD）", "pass": "予以放行"}
+_MODEL_LEVEL_ZH = {"high": "高", "medium": "中", "low": "低"}
 
 _MOTIF_ZH = {
     "fan_in": "集資扇入",
@@ -119,6 +125,49 @@ def _path_zh(g: nx.DiGraph, path: list[Any]) -> str:
     return "".join(parts)
 
 
+def _model_level(score: float) -> str:
+    return "high" if score >= BLOCK_THRESHOLD else "medium" if score >= REVIEW_THRESHOLD else "low"
+
+
+def _expm1(v: float) -> float:
+    return math.expm1(float(v))
+
+
+def model_opinion(g: nx.DiGraph, target: Any, model: StructuralModel) -> dict[str, Any]:
+    """結構模型對目標地址的判定，附上它看到的結構事實（輸入特徵的白話，不是模型內部權重）。"""
+    scores = model.predict(g)
+    score = float(scores.get(target, 0.0))
+    nodes, raw = node_features(g)
+    row = raw[nodes.index(target)]
+    in_deg, out_deg = int(round(_expm1(row[0]))), int(round(_expm1(row[1])))
+    forward = float(row[4])
+    dwell = _expm1(row[5])
+    facts: list[str] = [f"收款來源 {in_deg} 個、付款對象 {out_deg} 個"]
+    if in_deg and out_deg:
+        if dwell < 3_600:
+            facts.append(f"資金停留約 {max(1, int(dwell // 60))} 分鐘")
+        elif dwell < 86_400:
+            facts.append(f"資金停留約 {dwell / 3_600:.1f} 小時")
+        else:
+            facts.append(f"資金停留約 {dwell / 86_400:.0f} 天")
+        intact = "（近乎原封不動轉出）" if 0.45 <= forward <= 0.55 else ""
+        facts.append(f"轉出占進出總額 {forward:.0%}{intact}")
+    if row[12] >= 1.0:
+        facts.append("為已標註之合法實體")
+    level = _model_level(score)
+    return {
+        "score": round(score, 4),
+        "level": level,
+        "facts_zh": facts,
+        "narrative_zh": (
+            f"結構模型（GraphSAGE）判定為洗錢基礎設施的機率 {score:.2f}"
+            f"（{_MODEL_LEVEL_ZH[level]}）；模型看到的結構："
+            + "、".join(facts)
+            + "，並參考上下游兩階地址的同類特徵。"
+        ),
+    }
+
+
 def generate_str_draft(
     target: Any,
     amount_usdt: float,
@@ -128,6 +177,7 @@ def generate_str_draft(
     associations: list[Association],
     g: nx.DiGraph,
     request_id: str | None = None,
+    model: dict[str, Any] | None = None,
 ) -> str:
     """產生可疑交易申報（STR）草稿——提案書三大模組之「可疑交易報告輔助」。
 
@@ -173,6 +223,10 @@ def generate_str_draft(
         "",
         "四、目標地址結構證據",
         f"　　{evidence['narrative_zh']}",
+    ]
+    if model is not None:
+        lines.append(f"　　結構模型意見（第二引擎，僅供參考）：{model['narrative_zh']}")
+    lines += [
         "",
         "五、建議處置",
         f"　　{_DECISION_ZH[decision]}；如經人工審查確認，依洗錢防制法及相關法令",
@@ -189,6 +243,8 @@ def screen_withdrawal(
     max_hops: int = DEFAULT_MAX_HOPS,
     decay: float = DEFAULT_DECAY,
     pipeline: PipelineResult | None = None,
+    model: StructuralModel | None = None,
+    use_model: bool = True,
 ) -> dict[str, Any]:
     """出金審查主流程：SNA 管線 → 目標證據 → 關聯追溯 → noisy-or 融合 → 決策＋STR。
 
@@ -200,6 +256,10 @@ def screen_withdrawal(
 
     pipeline 傳入已算好的 run_pipeline 結果時直接重用，供同一張圖上還要
     產生圖譜 JSON 的呼叫端（API /screen）避免重算。
+
+    雙引擎：規則引擎給出 rule_decision；結構模型（model，預設載入已匯出權重）
+    判定 ≥ MODEL_ESCALATE_THRESHOLD 且規則放行時，升為加強審查（model_escalated=True）。
+    use_model=False 時完全不諮詢模型（單引擎對照用）。
     """
     if target not in g:
         return {
@@ -219,6 +279,9 @@ def screen_withdrawal(
             "associations": [],
             "evidence": None,
             "str_draft_zh": None,
+            "rule_decision": "pass",
+            "model": None,
+            "model_escalated": False,
         }
     sna_df, partition, risk_ratios, motif_hits = (
         pipeline if pipeline is not None else run_pipeline(g)
@@ -228,14 +291,32 @@ def screen_withdrawal(
 
     assoc = association_score(associations, decay=decay)
     combined = 1.0 - (1.0 - evidence["score"]) * (1.0 - assoc)
-    decision = "block" if combined >= BLOCK_THRESHOLD else (
+    rule_decision = "block" if combined >= BLOCK_THRESHOLD else (
         "review" if combined >= REVIEW_THRESHOLD else "pass"
     )
 
+    opinion: dict[str, Any] | None = None
+    if use_model:
+        active = model if model is not None else default_model()
+        if active is not None:
+            opinion = model_opinion(g, target, active)
+    escalated = (
+        opinion is not None
+        and rule_decision == "pass"
+        and opinion["score"] >= MODEL_ESCALATE_THRESHOLD
+    )
+    decision = "review" if escalated else rule_decision
+    decision_zh = _DECISION_ZH[decision] + ("——由結構模型加註" if escalated else "")
+
     narrative: list[str] = [
         f"出金目標地址 {target}（申請金額 {amount_usdt:,.0f} USDT）"
-        f"綜合風險分數 {combined:.2f}，建議{_DECISION_ZH[decision]}。"
+        f"綜合風險分數 {combined:.2f}，規則引擎建議{_DECISION_ZH[rule_decision]}。"
     ]
+    if escalated:
+        narrative.append(
+            f"結構模型判定 {opinion['score']:.2f}（高）：沒有規則圖樣命中，但結構與洗錢中繼一致，"
+            f"升為{_DECISION_ZH['review']}，由法遵人員決定。"
+        )
     if associations:
         nearest = associations[0]
         motifs_zh = "、".join(_MOTIF_ZH.get(m, m) for m in nearest.motifs)
@@ -248,7 +329,15 @@ def screen_withdrawal(
 
     str_draft = (
         generate_str_draft(
-            target, amount_usdt, decision, combined, evidence, associations, g, request_id
+            target,
+            amount_usdt,
+            decision,
+            combined,
+            evidence,
+            associations,
+            g,
+            request_id,
+            model=opinion,
         )
         if decision != "pass"
         else None
@@ -261,7 +350,10 @@ def screen_withdrawal(
         "self_score": evidence["score"],
         "association_score": round(assoc, 4),
         "decision": decision,
-        "decision_zh": _DECISION_ZH[decision],
+        "decision_zh": decision_zh,
+        "rule_decision": rule_decision,
+        "model": opinion,
+        "model_escalated": escalated,
         "narrative_zh": "".join(narrative),
         "associations": [asdict(a) for a in associations],
         "evidence": evidence,

@@ -27,25 +27,134 @@ ROLE_ZH = {
     "otc": "OTC 出金地址",
     "normal": "正常交易地址",
     "downstream": "下游收款地址",
+    "smurf": "拆單人頭地址",
+    "split_collector": "拆單整合地址",
+    "relay": "快進快出中繼",
+    "hot_wallet": "交易所熱錢包（已標註實體）",
+    "exchange_user": "交易所用戶",
 }
 
 WITHDRAWAL_TARGET = "TOtcOut01"  # 交易所用戶申請出金之目標地址（可疑）
 NORMAL_TARGET = "TNormalUser01"  # 對照組：正常用戶出金地址
 DOWNSTREAM_TARGET = "TDownstream01"  # 延伸情境：贓款自 OTC 地址再轉一手的下游地址
-# 出金審查 Demo 可選的五個情境（順序即前端顯示順序）
-SCREEN_TARGETS = (WITHDRAWAL_TARGET, DOWNSTREAM_TARGET, "TMule03", "TVictim01", NORMAL_TARGET)
+SPLIT_TARGET = "TSplitOut01"  # 情境六：拆單——11 筆低於固定門檻的小額匯入同一地址
+RELAY_TARGET = "TRelay03"  # 情境七：快進快出中繼——規則無圖樣可命中，由結構模型加註
+EXCHANGE_USER_TARGET = "TExchUser07"  # 情境八：交易所熱錢包批次出金的正常用戶（不可誤傷）
+# 出金審查 Demo 可選的八個情境（順序即前端顯示順序）
+SCREEN_TARGETS = (
+    WITHDRAWAL_TARGET,
+    DOWNSTREAM_TARGET,
+    "TMule03",
+    "TVictim01",
+    NORMAL_TARGET,
+    SPLIT_TARGET,
+    RELAY_TARGET,
+    EXCHANGE_USER_TARGET,
+)
 WITHDRAWAL_AMOUNT_USDT = 500_000.0  # 提案書情境：50 萬 USDT 提領
+
+# 情境中繼資料：前端情境列、簡報與 API /scenarios 共用同一份，避免三處各寫各的
+SCENARIOS: tuple[dict[str, object], ...] = (
+    {
+        "id": 1,
+        "target": WITHDRAWAL_TARGET,
+        "title_zh": "乾淨的地址，髒的上游",
+        "summary_zh": "用戶申請把 50 萬 USDT 提領到一個從未被通報、不在任何黑名單上的地址。",
+        "pain_zh": "黑名單永遠慢一步；金檢要求評估提幣資金流向",
+        "amount_usdt": WITHDRAWAL_AMOUNT_USDT,
+        "expect": "block",
+    },
+    {
+        "id": 2,
+        "target": DOWNSTREAM_TARGET,
+        "title_zh": "贓款再轉一手",
+        "summary_zh": "OTC 出金地址收到贓款後，再轉給一個全新地址；用戶要提領到這個第三階地址。",
+        "pain_zh": "單一固定門檻無法分級處置",
+        "amount_usdt": WITHDRAWAL_AMOUNT_USDT,
+        "expect": "review",
+    },
+    {
+        "id": 3,
+        "target": "TMule03",
+        "title_zh": "車手地址直接出金",
+        "summary_zh": "提領目標本身就是洗錢執行層的車手地址，但因為是新地址，尚未被任何單位通報。",
+        "pain_zh": "詐騙地址用過即丟，來不及被通報",
+        "amount_usdt": WITHDRAWAL_AMOUNT_USDT,
+        "expect": "block",
+    },
+    {
+        "id": 4,
+        "target": "TVictim01",
+        "title_zh": "被害人不連坐",
+        "summary_zh": "提領目標是一位被害人的地址——曾把錢匯給詐團，但資金來源方不該被加分。",
+        "pain_zh": "寧可錯殺的風控會傷害被害人與正常用戶",
+        "amount_usdt": WITHDRAWAL_AMOUNT_USDT,
+        "expect": "pass",
+    },
+    {
+        "id": 5,
+        "target": NORMAL_TARGET,
+        "title_zh": "正常用戶",
+        "summary_zh": "對照組：同一套引擎、同樣 50 萬 USDT，提領到一個只有日常小額往來的地址。",
+        "pain_zh": "對照組",
+        "amount_usdt": WITHDRAWAL_AMOUNT_USDT,
+        "expect": "pass",
+    },
+    {
+        "id": 6,
+        "target": SPLIT_TARGET,
+        "title_zh": "拆單規避固定門檻",
+        "summary_zh": (
+            "這筆只申請 9,000 USDT，低於業者的固定監控門檻；"
+            "但同一地址 40 分鐘內已從 11 個地址各收 9,000。"
+        ),
+        "pain_zh": "監控門檻是固定金額，拆單就繞得過",
+        "amount_usdt": 9_000.0,
+        "expect": "block",
+    },
+    {
+        "id": 7,
+        "target": RELAY_TARGET,
+        "title_zh": "快進快出中繼",
+        "summary_zh": (
+            "目標地址一進一出、每次停留不到十分鐘、金額原封不動往下傳；沒有任何規則圖樣能命中。"
+        ),
+        "pain_zh": "手法一變，寫死的規則就失效",
+        "amount_usdt": 200_000.0,
+        "expect": "review",
+    },
+    {
+        "id": 8,
+        "target": EXCHANGE_USER_TARGET,
+        "title_zh": "交易所熱錢包批次出金的用戶",
+        "summary_zh": (
+            "某交易所熱錢包在 20 分鐘內對 30 名用戶批次出金，結構上像極了洗錢的快速分散。"
+        ),
+        "pain_zh": "誤報拖垮人工審查量，也趕跑正常用戶",
+        "amount_usdt": 3_000.0,
+        "expect": "pass",
+    },
+)
 
 
 def _add(g: nx.DiGraph, u: str, v: str, amount: float, ts: int) -> None:
     g.add_edge(u, v, amount=amount, timestamp=ts)
 
 
-def load_withdrawal_scenario(with_downstream: bool = False) -> nx.DiGraph:
+def load_withdrawal_scenario(
+    with_downstream: bool = False,
+    *,
+    with_split: bool = False,
+    with_relay: bool = False,
+    with_exchange_batch: bool = False,
+) -> nx.DiGraph:
     """建構 50 萬 USDT 假投資詐騙劇本圖。
 
     with_downstream：延伸情境——OTC 出金地址事後又把款項轉給一個新地址（第 3 階）。
-    另開旗標而非直接加進基準圖，是因為多一個節點會改變全圖百分位，
+    with_split：情境六——集資主錢包經 11 個人頭各轉 9,000 USDT 到同一個拆單整合地址。
+    with_relay：情境七——OTC02 之後三個一進一出、快進快出的中繼地址。
+    with_exchange_batch：情境八——已標註的交易所熱錢包對 30 名用戶批次出金。
+    每個延伸都另開旗標而非直接加進基準圖，是因為多一個節點會改變全圖百分位，
     招牌情境的 0.73／0.33／0.60 會跟著漂移（已有測試鎖定）。
 
     節點屬性：role（英文角色鍵，見 ROLE_ZH）。
@@ -123,6 +232,33 @@ def load_withdrawal_scenario(with_downstream: bool = False) -> nx.DiGraph:
     _add(g, "THotWallet01", "TShopA", 800.0, t0 + 4_500)
     _add(g, NORMAL_TARGET, "TShopB", 300.0, t0 + 8_000)
 
+    # --- 延伸情境（各自獨立旗標，見 docstring） ---
+    if with_split:
+        # 情境六：主錢包把 99,000 拆成 11 筆 9,000 經人頭匯入同一整合地址，每筆都低於固定門檻
+        for i in range(1, 12):
+            smurf = f"TSmurf{i:02d}"
+            _add(g, "TAggregator01", smurf, 9_000.0, t0 + 10_000 + i * 120)
+            _add(g, smurf, SPLIT_TARGET, 9_000.0, t0 + 10_600 + i * 200)
+    if with_relay:
+        # 情境七：OTC02 之後三個一進一出的中繼，每站停留約 8 分鐘、金額原封不動
+        _add(g, "TOtcOut02", "TRelay01", 200_000.0, t0 + 12_000)
+        _add(g, "TRelay01", "TRelay02", 200_000.0, t0 + 12_480)
+        _add(g, "TRelay02", RELAY_TARGET, 200_000.0, t0 + 12_960)
+    if with_exchange_batch:
+        # 情境八：已標註的交易所熱錢包 20 分鐘內對 30 名用戶批次出金（正常營運，不是洗錢）
+        g.add_node(
+            "THotWallet02",
+            known_entity="exchange_hot_wallet",
+            entity_zh="已標註之交易所熱錢包",
+        )
+        _add(g, "TShopB", "THotWallet02", 5_000.0, t0 - 86_400 * 20)
+        _add(g, "TShopA", "THotWallet02", 12_000.0, t0 - 86_400 * 9)
+        _add(g, "TShopC", "THotWallet02", 7_500.0, t0 - 86_400 * 3)
+        amounts = [1_250, 3_000, 640, 9_800, 2_100, 475, 15_000, 3_300, 820, 5_600]
+        for i in range(1, 31):
+            amount = float(amounts[i % 10])
+            _add(g, "THotWallet02", f"TExchUser{i:02d}", amount, t0 + 15_000 + i * 40)
+
     # --- 節點角色標註 ---
     roles: dict[str, str] = {}
     for node in g.nodes():
@@ -141,6 +277,16 @@ def load_withdrawal_scenario(with_downstream: bool = False) -> nx.DiGraph:
             roles[node] = "peel_side"
         elif name.startswith("TOtcOut"):
             roles[node] = "otc"
+        elif name.startswith("TSmurf"):
+            roles[node] = "smurf"
+        elif name.startswith("TSplitOut"):
+            roles[node] = "split_collector"
+        elif name.startswith("TRelay"):
+            roles[node] = "relay"
+        elif name == "THotWallet02":
+            roles[node] = "hot_wallet"
+        elif name.startswith("TExchUser"):
+            roles[node] = "exchange_user"
         else:
             roles[node] = "normal"
     nx.set_node_attributes(g, roles, "role")

@@ -141,7 +141,7 @@ class ScoreRequest(BaseModel):
 
 
 class ScreenRequest(BaseModel):
-    """出金審查請求：目標地址限定為劇本情境中的五個示範地址（scenario.SCREEN_TARGETS）。"""
+    """出金審查請求：目標地址限定為劇本情境中的示範地址（scenario.SCREEN_TARGETS）。"""
 
     target: str = Field(max_length=64)
     amount_usdt: float = Field(gt=0)
@@ -204,6 +204,41 @@ def _evidences_for(
     }
 
 
+# 每個延伸情境各自掛在獨立旗標下（見 scenario.load_withdrawal_scenario）
+_SCENARIO_FLAGS: dict[str, dict[str, bool]] = {
+    scenario.DOWNSTREAM_TARGET: {"with_downstream": True},
+    scenario.SPLIT_TARGET: {"with_split": True},
+    scenario.RELAY_TARGET: {"with_relay": True},
+    scenario.EXCHANGE_USER_TARGET: {"with_exchange_batch": True},
+}
+
+
+@app.get("/scenarios")
+def scenarios() -> list[dict[str, Any]]:
+    """出金審查 Demo 的情境清單（前端情境列與簡報共用同一份定義）。"""
+    return [dict(item) for item in scenario.SCENARIOS]
+
+
+def _counterfactual_without_entity_labels(
+    g: nx.DiGraph, target: str, amount_usdt: float
+) -> dict[str, Any] | None:
+    """圖中有已標註實體時，另算一次「拿掉標註」的結果，讓誤報有多嚴重看得見。"""
+    labeled = [n for n, d in g.nodes(data=True) if d.get("known_entity")]
+    if not labeled:
+        return None
+    h = g.copy()
+    for n in labeled:
+        del h.nodes[n]["known_entity"]
+    alt = screen_withdrawal(h, target, amount_usdt)
+    return {
+        "label_zh": "若沒有實體標註",
+        "risk_score": alt["risk_score"],
+        "decision": alt["decision"],
+        "decision_zh": alt["decision_zh"],
+        "affected_nodes": sum(1 for _ in g.successors(labeled[0])),
+    }
+
+
 @app.post("/screen")
 def screen(
     req: ScreenRequest,
@@ -216,9 +251,7 @@ def screen(
     if req.target not in scenario.SCREEN_TARGETS:
         raise HTTPException(status_code=400, detail="target 需為劇本情境中的出金地址")
 
-    g = scenario.load_withdrawal_scenario(
-        with_downstream=req.target == scenario.DOWNSTREAM_TARGET
-    )
+    g = scenario.load_withdrawal_scenario(**_SCENARIO_FLAGS.get(req.target, {}))
     pipeline: PipelineResult = run_pipeline(g)
     sna_df, partition, risk_ratios, motif_hits = pipeline
 
@@ -234,6 +267,9 @@ def screen(
     associations = result["associations"]
     result["highlight_path"] = (
         [str(node) for node in associations[0]["path"]] if associations else []
+    )
+    result["counterfactual"] = _counterfactual_without_entity_labels(
+        g, req.target, req.amount_usdt
     )
     return result
 

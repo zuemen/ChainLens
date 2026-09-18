@@ -197,10 +197,16 @@ def detect_all(
     min_hops: int = 3,
     keep_ratio: float = 0.8,
 ) -> list[MotifHit]:
-    """一次執行全部圖樣偵測。"""
-    return [
+    """一次執行全部圖樣偵測。
+
+    節點屬性 known_entity（例：exchange_hot_wallet）代表已標註的合法實體：
+    交易所熱錢包對數十名用戶批次出金，結構上與洗錢的快速分散無異，
+    若不排除，所有收款用戶都會被連坐成高風險（誤報）。以該實體為中心的圖樣一律不計。
+    """
+    hits = [
         *detect_fan_in(g, min_degree, window_seconds),
         *detect_fan_out(g, min_degree, window_seconds),
         *detect_gather_scatter(g, min_degree, window_seconds),
         *detect_peeling_chain(g, min_hops, keep_ratio),
     ]
+    return [h for h in hits if not g.nodes[h.center].get("known_entity")]
