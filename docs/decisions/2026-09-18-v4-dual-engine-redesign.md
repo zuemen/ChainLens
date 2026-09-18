@@ -138,3 +138,11 @@ STR 草稿第四節多一行「結構模型意見（第二引擎，僅供參考�
 - 影片 v4：1 分鐘版 1:12、完整版 3:02；旁白 edge-tts zh-TW-HsiaoChenNeural；錄影腳本 `record5.mjs` 依賴決策卡標題「兩個引擎，一個處置」等 DOM 文字。
 - 簡報 v4：`v4_html/deck.html` → render.cjs → pptx.cjs；第 9 頁封面圖取自影片第 16 秒。
 - 測試：pytest 126、vitest 68。
+
+## 八、簡報改為原生 PowerPoint（v5，2026-09-18 下午）
+
+使用者否決 v4 深色圖片版：「全部都是圖片檔、AI 感太重」，並指定參考 2026 可信 AI 黑客松的 `NewJeans always five_DEMO.pptx`。
+該參考檔的設計：米白底、白卡片配彩色頂邊（navy／red／green／gold）、標題只把一個關鍵詞上色、每頁底部一句結論、小字出處與頁碼、Microsoft JhengHei。
+v5 用 pptxgenjs 直接產生原生物件（386 個可編輯文字框、原生長條圖與折線圖、表格、第 9 頁 addMedia 內嵌影片），只有封面金流圖是 PNG。
+內容與 15 頁結構沿用 v4（雙引擎、八情境），視覺全部換掉。原始檔在競賽資料夾 `03_參考資料/簡報與影片原始檔/v5_native/`。
+網站仍是深色版；若使用者也要求網站改淺色，token 以 v5 為準（BG F7F6F1、NAVY 2E5D89、RED C0392B、GREEN 2E7C6A、GOLD D9A520）。
