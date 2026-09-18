@@ -130,3 +130,11 @@ STR 草稿第四節多一行「結構模型意見（第二引擎，僅供參考�
 - Playwright e2e（`web/e2e/screening.spec.ts`）未重跑（只跑 vitest），但頁面上 h1「出金審查」、radio 名稱、「下載草稿（.txt）」等其依賴的文字都保留。
 - 情境 1～5 的 ScenarioGraph 三階段版面未重排（只套新色）。
 
+
+## 七、部署與交付紀錄（2026-09-18）
+
+- **坑**：`.vercelignore` 原本整個排除 `chainlens/models/`（當時只有 torch 檔）。結構模型接進 API 後首次部署 `FUNCTION_INVOCATION_FAILED`（`No module named 'chainlens.models'`）。已改為只排除 gcn/sage/train/evaluate/train_structural 五個 torch 檔，保留 `structural.py` 與 `weights/`。
+- 上線前驗證法：用只裝 `requirements.txt` 的乾淨 venv（Python 3.11+）匯入 `chainlens.api.main` 並打 `/screen`，能過再 push。
+- 影片 v4：1 分鐘版 1:12、完整版 3:02；旁白 edge-tts zh-TW-HsiaoChenNeural；錄影腳本 `record5.mjs` 依賴決策卡標題「兩個引擎，一個處置」等 DOM 文字。
+- 簡報 v4：`v4_html/deck.html` → render.cjs → pptx.cjs；第 9 頁封面圖取自影片第 16 秒。
+- 測試：pytest 126、vitest 68。
