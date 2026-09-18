@@ -15,11 +15,11 @@ interface ModelEval {
 
 export const RESEARCH_EVAL = raw as { generated: string; test_nodes: number; test_illicit: number; models: ModelEval[] }
 
-/** 類別色依模型固定指派（不隨篩選或排序重新上色），對應 index.css 的 --color-series-* */
+/** 類別色依模型固定指派（不隨篩選或排序重新上色）：RF＝文字色、GraphSAGE＋RMP＝結構模型色、GCN＝加強審查色 */
 const SERIES_COLOR: Record<string, string> = {
-  rf: 'var(--color-series-1)',
-  'sage-rmp': 'var(--color-series-2)',
-  gcn: 'var(--color-series-3)',
+  rf: 'var(--color-text)',
+  'sage-rmp': 'var(--color-model)',
+  gcn: 'var(--color-review)',
 }
 /** 線型也不同：色覺辨識困難時仍分得開 */
 const SERIES_DASH: Record<string, string | undefined> = { rf: undefined, 'sage-rmp': '8 5', gcn: '2 5' }
@@ -70,8 +70,8 @@ export function StepF1Chart() {
       <div className="relative">
         <svg viewBox={`0 0 ${W} ${H + BAR_H + 24}`} className="block h-auto w-full" role="img" aria-label="Elliptic 測試期逐時間段 F1 折線圖；第 43 期起三個模型的 F1 都降到接近 0">
           {/* 第 43 期起的區段 */}
-          <rect x={x(SHIFT_STEP) - plotW / 28} y={M.top} width={x(steps[steps.length - 1]) - x(SHIFT_STEP) + plotW / 28} height={plotH} className="fill-panel-raised" />
-          <text x={x(SHIFT_STEP) - plotW / 28 + 8} y={M.top + 18} className="fill-ink text-[13px] font-bold">第 43 期起：暗網市場關閉</text>
+          <rect x={x(SHIFT_STEP) - plotW / 28} y={M.top} width={x(steps[steps.length - 1]) - x(SHIFT_STEP) + plotW / 28} height={plotH} className="fill-surface-2" />
+          <text x={x(SHIFT_STEP) - plotW / 28 + 8} y={M.top + 18} className="fill-text text-[13px] font-bold">第 43 期起：暗網市場關閉</text>
           <text x={x(SHIFT_STEP) - plotW / 28 + 8} y={M.top + 36} className="fill-muted text-[12px]">犯罪手法改變，三個模型同時失效</text>
 
           {/* 格線與軸 */}
@@ -116,9 +116,9 @@ export function StepF1Chart() {
           {/* 懸停十字線 */}
           {hoverIndex !== null && (
             <g pointerEvents="none">
-              <line x1={x(steps[hoverIndex])} x2={x(steps[hoverIndex])} y1={M.top} y2={H + BAR_H} stroke="var(--color-ink)" strokeWidth={1} strokeDasharray="3 3" />
+              <line x1={x(steps[hoverIndex])} x2={x(steps[hoverIndex])} y1={M.top} y2={H + BAR_H} stroke="var(--color-text)" strokeWidth={1} strokeDasharray="3 3" />
               {models.map((model) => (
-                <circle key={model.key} cx={x(steps[hoverIndex])} cy={y(model.per_step[hoverIndex].f1)} r={5} fill={SERIES_COLOR[model.key]} stroke="var(--color-panel)" strokeWidth={2} />
+                <circle key={model.key} cx={x(steps[hoverIndex])} cy={y(model.per_step[hoverIndex].f1)} r={5} fill={SERIES_COLOR[model.key]} stroke="var(--color-surface)" strokeWidth={2} />
               ))}
             </g>
           )}
@@ -135,7 +135,7 @@ export function StepF1Chart() {
 
         {hoverIndex !== null && (
           <div
-            className="pointer-events-none absolute top-2 border border-line bg-panel-raised px-3 py-2 text-sm shadow-sm"
+            className="pointer-events-none absolute top-2 border border-line bg-surface-2 px-3 py-2 text-sm"
             style={{ left: `${(x(steps[hoverIndex]) / W) * 100}%`, transform: hoverIndex > steps.length / 2 ? 'translateX(-105%)' : 'translateX(5%)' }}
           >
             <div className="font-bold">第 {steps[hoverIndex]} 期</div>

@@ -7,9 +7,9 @@ const LABEL_ZH: Record<RiskLabel, string> = {
 }
 
 const LABEL_COLOR: Record<RiskLabel, string> = {
-  high: 'var(--color-risk-high)',
-  medium: 'var(--color-risk-med)',
-  low: 'var(--color-risk-low)',
+  high: 'var(--color-signal)',
+  medium: 'var(--color-review)',
+  low: 'var(--color-pass)',
 }
 
 export function riskColor(label: RiskLabel): string {
@@ -19,7 +19,7 @@ export function riskColor(label: RiskLabel): string {
 export function RiskBadge({ score, label }: { score: number; label: RiskLabel }) {
   return (
     <span className="inline-flex flex-wrap items-baseline gap-x-2">
-      <span className="font-serif text-6xl font-black leading-none" style={{ color: riskColor(label) }}>
+      <span className="big-num text-6xl" style={{ color: riskColor(label) }}>
         {score.toFixed(2)}
       </span>
       <span className="whitespace-nowrap text-sm font-bold" style={{ color: riskColor(label) }}>

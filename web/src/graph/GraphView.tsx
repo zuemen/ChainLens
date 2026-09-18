@@ -20,7 +20,7 @@ const STYLE: cytoscape.StylesheetJson = [
       // 只用系統字型：Cytoscape 在初始化當下量文字寬度，網頁字型晚到會讓長標籤兩端被裁掉
       'font-family': 'ui-monospace, Consolas, Menlo, monospace',
       // 用底色襯字而非描邊：描邊會讓 Cytoscape 的文字貼圖在左右兩端被裁掉一截
-      'text-background-color': '#0B2A4A',
+      'text-background-color': '#0B0D12',
       'text-background-opacity': 0.85,
       'text-background-padding': '3px',
       'text-valign': 'bottom',
@@ -34,15 +34,19 @@ const STYLE: cytoscape.StylesheetJson = [
     style: { 'border-width': 2, 'border-color': '#FFFFFF' },
   },
   {
+    selector: 'node[?entity]',
+    style: { 'border-width': 4, 'border-color': GRAPH_COLOR.entity },
+  },
+  {
     selector: 'node[?focused]',
-    style: { 'border-width': 5, 'border-color': '#F06456' },
+    style: { 'border-width': 5, 'border-color': GRAPH_COLOR.risk },
   },
   {
     selector: 'edge',
     style: {
       width: 1,
-      'line-color': '#4A6B91',
-      'target-arrow-color': '#4A6B91',
+      'line-color': GRAPH_COLOR.edge,
+      'target-arrow-color': GRAPH_COLOR.edge,
       'target-arrow-shape': 'triangle',
       'arrow-scale': 0.7,
       'curve-style': 'bezier',
@@ -50,7 +54,7 @@ const STYLE: cytoscape.StylesheetJson = [
   },
   {
     selector: 'edge[?highlighted]',
-    style: { width: 5, 'line-color': '#F06456', 'target-arrow-color': '#F06456' },
+    style: { width: 5, 'line-color': GRAPH_COLOR.risk, 'target-arrow-color': GRAPH_COLOR.risk },
   },
 ]
 
@@ -101,7 +105,7 @@ export function GraphView({
         ref={container}
         data-testid="graph-view"
         className="h-[420px] w-full md:h-[520px]"
-        style={{ backgroundColor: 'var(--color-graph-bg)' }}
+        style={{ backgroundColor: GRAPH_COLOR.bg }}
       />
       <GraphLegend scheme={scheme} hasPath={Boolean(highlightPath?.length)} hasFocus={Boolean(focus)} />
     </div>
@@ -117,6 +121,7 @@ function GraphLegend({ scheme, hasPath, hasFocus }: { scheme: ColorScheme; hasPa
           { color: GRAPH_COLOR.victim, label: '被害人' },
           { color: GRAPH_COLOR.normal, label: '正常交易' },
           { color: GRAPH_COLOR.other, label: '其他出金地址' },
+          { color: GRAPH_COLOR.entity, label: '已標註實體（描邊）' },
           { color: GRAPH_COLOR.minor, label: '剝離的小額地址' },
         ]
       : [

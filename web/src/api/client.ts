@@ -1,5 +1,5 @@
 import { describeError } from './errors'
-import type { ScreenResult, WorkbenchPayload } from './types'
+import type { Scenario, ScreenResult, WorkbenchPayload } from './types'
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '')
 
@@ -16,14 +16,10 @@ export class ApiError extends Error {
   }
 }
 
-async function post<T>(path: string, body: unknown): Promise<T> {
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response
   try {
-    response = await fetch(`${API_BASE}${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    response = await fetch(`${API_BASE}${path}`, init)
   } catch {
     throw new ApiError(0, describeError(0))
   }
@@ -39,12 +35,25 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return (await response.json()) as T
 }
 
+function post<T>(path: string, body: unknown): Promise<T> {
+  return request<T>(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
 export function postScreen(target: string, amountUsdt: number): Promise<ScreenResult> {
   return post<ScreenResult>('/screen', {
     target,
     amount_usdt: amountUsdt,
     request_id: 'DEMO-2026-001',
   })
+}
+
+/** 八個示範情境的定義（與後端 scenario.SCENARIOS 同一份）；失敗時由呼叫端退回內建常數 */
+export function getScenarios(): Promise<Scenario[]> {
+  return request<Scenario[]>('/scenarios')
 }
 
 export function postGraph(body: {

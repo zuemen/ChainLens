@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { GraphNode, GraphPayload } from '../api/types'
+import { ENTITY_ROLES } from '../content/scenarios'
+import { GraphLegend } from './FocusGraph'
 import { STAGE, edgePath, layoutReplay } from './replayLayout'
 
 const PHASES: { label: string; roles: string[] }[] = [
@@ -16,9 +18,9 @@ const ROLE_HEAD: Record<string, string> = {
 }
 
 /**
- * 劇本金流圖：依洗錢三階段由左至右分欄的靜態 SVG。
- * 比力導向／dagre 自動排版清楚得多——每一欄是什麼角色、錢怎麼流向審查目標，投影時後排也看得懂。
- * 只適用有角色標註的劇本圖；任意鏈上圖仍用 GraphView（Cytoscape）。
+ * 劇本金流圖：依洗錢三階段由左至右分欄的靜態 SVG（情境 1～5 與工作台劇本圖）。
+ * 每一欄是什麼角色、錢怎麼流向審查目標，投影時後排也看得懂。
+ * 情境 6～8 的目標角色不在三階段欄位裡，改用 FocusGraph；任意鏈上圖仍用 GraphView（Cytoscape）。
  */
 export function ScenarioGraph({
   payload,
@@ -59,13 +61,13 @@ export function ScenarioGraph({
 
   return (
     <figure>
-      <div className="relative border border-dark-line">
+      <div className="graph-scroll relative border border-line">
         <svg
           viewBox={`0 0 ${STAGE.width} ${STAGE.height}`}
           className="replay-stage block h-auto w-full"
           data-testid="graph-view"
           role="img"
-          aria-label="金流圖：由左至右為集資、分層、整合三階段；紅色粗線為流向審查目標的風險資金路徑"
+          aria-label="金流圖：由左至右為集資、分層、整合三階段；訊號色粗線為流向審查目標的風險資金路徑"
         >
           {phases.map((phase) => (
             <g key={phase.label}>
@@ -94,6 +96,7 @@ export function ScenarioGraph({
           {payload.nodes.map((node) => {
             const { x, y } = point(node.id)
             const isTarget = node.id === target
+            const entity = ENTITY_ROLES.has(node.role)
             const radius = node.role === 'aggregator' ? 24 : isTarget ? 18 : node.role === 'peel_side' ? 6 : node.role === 'victim' || node.role === 'normal' ? 9 : 13
             const tone = isTarget ? 'is-target' : node.label === 'high' ? 'is-risky' : node.role === 'victim' ? 'is-victim' : ''
             return (
@@ -103,7 +106,7 @@ export function ScenarioGraph({
                   cx={x}
                   cy={y}
                   r={radius}
-                  className={['replay-node is-on', tone, onSelect ? 'cursor-pointer' : ''].join(' ')}
+                  className={['replay-node is-on', tone, entity ? 'is-entity' : '', onSelect ? 'cursor-pointer' : ''].join(' ')}
                   onPointerEnter={() => setHover(node)}
                   onPointerLeave={() => setHover(null)}
                   onClick={onSelect ? () => onSelect(node.id) : undefined}
@@ -139,21 +142,8 @@ export function ScenarioGraph({
         )}
       </div>
 
-      <figcaption>
-        <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
-          {highlightPath.length > 0 && (
-            <li className="flex items-center gap-2">
-              <span aria-hidden="true" className="inline-block h-1 w-7 bg-signal" />
-              流向審查目標的風險資金路徑
-            </li>
-          )}
-          <li className="flex items-center gap-2"><span aria-hidden="true" className="inline-block h-3.5 w-3.5 rounded-full border-[3px] border-ink bg-panel" />審查目標</li>
-          <li className="flex items-center gap-2"><span aria-hidden="true" className="inline-block h-3 w-3 rounded-full bg-signal" />高風險地址</li>
-          <li className="flex items-center gap-2"><span aria-hidden="true" className="inline-block h-3 w-3 rounded-full bg-node-victim" />被害人</li>
-          <li className="flex items-center gap-2"><span aria-hidden="true" className="inline-block h-3 w-3 rounded-full bg-node-idle" />其他地址</li>
-          <li>{onSelect ? '點選節點查看該地址的風險證據' : '滑鼠移到節點上可看地址與分數'}</li>
-        </ul>
-      </figcaption>
+      <GraphLegend hasPath={highlightPath.length > 0} hasEntity={payload.nodes.some((node) => ENTITY_ROLES.has(node.role))} />
+      {onSelect && <p className="mt-1 text-sm text-muted">點選節點查看該地址的風險證據。</p>}
     </figure>
   )
 }

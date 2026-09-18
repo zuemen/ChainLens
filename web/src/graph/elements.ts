@@ -2,17 +2,20 @@ import type { ElementDefinition } from 'cytoscape'
 import type { GraphNode, GraphPayload } from '../api/types'
 
 /**
- * 與首頁案件重演同一套語意：金＝被害人、橘＝風險節點、灰藍＝正常、米白＝審查目標。
+ * 與首頁案件重演同一套語意：金＝被害人、訊號色＝風險節點、灰藍＝其他、白＝審查目標、模型色＝已標註實體。
  * Cytoscape 畫在 canvas 上讀不到 CSS 變數，這裡必須寫原始 hex（對應 index.css 的 token）。
- * 對比值為海軍藍畫布 #0B2A4A 上實算，非文字門檻 3:1。
+ * 對比值為 ink #0B0D12 畫布上實算，非文字門檻 3:1。
  */
 export const GRAPH_COLOR = {
-  victim: '#E2C06A', // 8.30:1 於海軍藍畫布 #0B2A4A
-  risk: '#F06456', // 4.61:1
-  normal: '#8FA3BC', // 5.63:1
-  minor: '#5F7A99', // 3.28:1 — 剝離的小額地址
-  other: '#D5DEE9', // 10.70:1 — 其他出金地址
-  focus: '#FFFFFF', // 14.54:1
+  victim: '#E2C06A', // 11.09:1
+  risk: '#FF5C3A', // 6.33:1
+  normal: '#6B7A95', // 4.48:1
+  minor: '#4A5670', // 2.64:1 — 剝離的小額地址（刻意退到背景）
+  other: '#C9D2E0', // 13.0:1 — 其他出金地址
+  focus: '#FFFFFF', // 19.43:1
+  entity: '#4CC9F0', // 10.11:1 — 已標註實體描邊（結構模型專用色）
+  bg: '#0B0D12',
+  edge: '#5F6E8C', // 3.79:1
 } as const
 
 const ROLE_COLOR: Record<string, string> = {
@@ -24,6 +27,11 @@ const ROLE_COLOR: Record<string, string> = {
   peel_side: GRAPH_COLOR.minor,
   otc: GRAPH_COLOR.other,
   normal: GRAPH_COLOR.normal,
+  smurf: GRAPH_COLOR.risk,
+  split_collector: GRAPH_COLOR.other,
+  relay: GRAPH_COLOR.other,
+  hot_wallet: GRAPH_COLOR.normal,
+  exchange_user: GRAPH_COLOR.normal,
 }
 
 const FOCUS_COLOR = GRAPH_COLOR.focus
@@ -34,7 +42,7 @@ const HIGH_SCORE = 0.7
 const MED_SCORE = 0.4
 
 /**
- * role＝劇本圖，沿用 Streamlit 的角色語意配色。
+ * role＝劇本圖，沿用角色語意配色。
  * risk＝工作台，範例圖與真實 TRON 圖沒有 role 屬性（全是 normal），
  *       只靠角色著色會渲染成整片單色，故改用分數色階。
  */
@@ -83,6 +91,7 @@ export function toElements(
       size: 16 + node.pagerank * 300,
       focused: focus === node.id,
       motifCenter: node.is_motif_center,
+      entity: node.role === 'hot_wallet',
     },
   }))
 

@@ -1,71 +1,46 @@
 @import "tailwindcss";
 
 @theme {
-  /* 正式監理簡報風格：白底、深海軍藍、細金線；紅色只用於風險。對比值為實算 */
-  --color-base: #F5F6F8;
-  --color-panel: #FFFFFF;
-  --color-panel-raised: #EEF1F5;
+  /*
+   * v4 視覺定案：控制台／證據板。深色底、一個訊號色（--signal）、結構模型專用色（--model）。
+   * 對比值全部以 WCAG 相對亮度公式實算（見 docs/decisions/2026-09-18-v4-dual-engine-redesign.md 第六節）。
+   */
+  --color-ink: #0B0D12;        /* 頁面底 */
+  --color-surface: #131722;    /* 卡片 */
+  --color-surface-2: #1B2130;  /* 卡片內層／表頭 */
 
-  /* 邊框分兩階：裝飾線不受 3:1 規範，控制項邊界必須達標 */
-  --color-line: #D6DBE2;         /* 1.29:1 — 僅供分隔線與面板外框 */
-  --color-line-strong: #7A8597;  /* 3.45:1 — 表單輸入框與控制項邊界 */
+  /* 邊框分兩階：裝飾線不受 3:1 規範；控制項邊界必須 ≥3:1 */
+  --color-line: #2A3245;         /* 1.52:1 於 ink — 分隔線 */
+  --color-line-strong: #6B7A95;  /* 4.48:1 於 ink、4.13:1 於 surface — 輸入框與控制項邊界 */
 
-  --color-ink: #0E1B2C;          /* 16.03:1 於 base */
-  --color-muted: #586579;        /* 5.47:1 於 base、5.91:1 於 panel */
+  --color-text: #E8ECF4;   /* 16.41:1 於 ink、15.12:1 於 surface */
+  --color-muted: #9AA5B8;  /* 7.82:1 於 ink、7.20:1 於 surface、6.46:1 於 surface-2 */
 
-  /* 機構主色：深海軍藍（主按鈕、深色區塊、標題強調） */
-  --color-brand: #0B2A4A;        /* 13.45:1 於 base */
-  --color-brand-hover: #123E6B;
-  --color-gold: #85671B;         /* 4.91:1 — 章節編號與細線 */
-  --color-gold-on-dark: #D8B45A; /* 7.34:1 於 brand */
+  /* 訊號色：風險、資金路徑、暫緩。文字用於深底 6.33:1（ink）／5.83:1（surface）／5.24:1（surface-2） */
+  --color-signal: #FF5C3A;
+  /* 結構模型通道（第二引擎專用色，不做他用）10.11:1 於 ink */
+  --color-model: #4CC9F0;
+  --color-pass: #3DDC97;    /* 放行 11.00:1 於 ink */
+  --color-review: #FFB547;  /* 加強審查 11.06:1 於 ink */
 
-  /* 風險語意色：文字用，base 與 panel 兩種底色皆 ≥4.5:1 */
-  --color-risk-high: #B42318;    /* 6.08 / 6.57 */
-  --color-risk-med: #8A5300;     /* 5.85 / 6.33 */
-  --color-risk-low: #1B6B45;     /* 6.00 / 6.49 */
+  /* 只用於 STR 草稿「紙」 */
+  --color-paper: #F6F1E7;
+  --color-paper-ink: #1A1A1A;    /* 15.46:1 於 paper */
+  --color-paper-muted: #5A5650;  /* 6.47:1 於 paper */
 
-  /* 風險強調：signal 為深色底上的圖形／大字（4.61:1 於 brand）；signal-ink 為白底文字 */
-  --color-signal: #F06456;
-  --color-signal-ink: #B42318;   /* 6.08:1 於 base */
-
-  /* 深色區塊（主視覺、案件重演、行動呼籲）＝海軍藍 */
-  --color-dark: #0B2A4A;
-  --color-on-dark: #FFFFFF;          /* 14.54:1 */
-  --color-on-dark-muted: #B7C4D6;    /* 8.23:1 */
-  --color-dark-line: #24466B;
-
-  /* 圖譜專用（canvas，非文字門檻 3:1） */
-  --color-graph-bg: #0B2A4A;
-  --color-focus: #FFFFFF;
-  --color-path: #F06456;
-
-  /* 三級處置刻度的區段底色（非文字） */
-  --color-zone-pass: #BFD8C9;
-  --color-zone-review: #E8D3A8;
-  --color-zone-block: #EDB5AE;
-
-  /* 案件重演舞台（深色底上的圖形） */
-  --color-node-idle: #8FA3BC;     /* 5.63:1 於 dark */
-  --color-node-victim: #E2C06A;   /* 8.30:1 */
-  --color-edge: #4F78A8;          /* 3.17:1 — 一般資金流向線，投影時要看得到 */
-  --color-pass-on-dark: #7FD6A4;  /* 8.35:1 — 「放行」字樣 */
-
-  /* 研究頁圖表的類別色（依序固定指派，不循環）。validate_palette.js 於白底六項全過 */
-  --color-series-1: #C2410C;      /* Random Forest */
-  --color-series-2: #1F6FB2;      /* GraphSAGE + RMP */
-  --color-series-3: #8C6A12;      /* GCN */
-
-  --color-ring: #1F5A96;          /* 鍵盤焦點環 6.56:1 */
+  /* 圖譜節點（canvas／SVG 圖形，非文字門檻 3:1，於 ink 實算） */
+  --color-node-victim: #E2C06A;  /* 11.09:1 */
+  --color-node-other: #6B7A95;   /* 4.48:1 */
+  --color-edge: #5F6E8C;         /* 3.79:1 — 一般資金流向線 */
 
   --font-sans: "Noto Sans TC", system-ui, sans-serif;
-  --font-serif: "Noto Serif TC", "Songti TC", serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
 html {
-  background-color: var(--color-base);
-  color: var(--color-ink);
-  color-scheme: light;
+  background-color: var(--color-ink);
+  color: var(--color-text);
+  color-scheme: dark;
   scroll-behavior: smooth;
 }
 
@@ -73,51 +48,144 @@ body {
   margin: 0;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  /* 手機寬度不可橫向捲動：這是最後一道保險，版面本身仍要在 390px 排得下 */
+  overflow-x: clip;
 }
 
 h1,
-h2 {
-  font-family: var(--font-serif);
-  letter-spacing: 0.01em;
+h2,
+h3 {
+  font-family: var(--font-sans);
+  letter-spacing: -0.01em;
 }
 
-/* 地址與數值一律等寬且等距數字，這是法遵工具的閱讀慣例，也避免數字跳動 */
+/* 地址與數值一律等寬且等距數字：法遵工具的閱讀慣例，也避免數字跳動 */
 .tabular {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
-/* 小標：等寬、字距拉開，全站章節編號共用 */
-.kicker {
-  font-family: var(--font-sans);
-  font-size: 0.875rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: var(--color-gold);
+/* 大數字：800 字重、緊字距，控制台的主角 */
+.big-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
 }
-.on-dark .kicker {
-  color: var(--color-gold-on-dark);
+
+/* 小標：等寬、字距拉開，全站共用 */
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-muted);
 }
 
 /* 表單控制項的邊界是識別它的唯一依據，必須用達標的那一階 */
 input,
 select {
   border-color: var(--color-line-strong);
+  background-color: var(--color-surface-2);
+  color: var(--color-text);
+}
+input::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-ring);
+  outline: 2px solid var(--color-text);
   outline-offset: 2px;
 }
-.on-dark :focus-visible {
-  outline-color: var(--color-gold-on-dark);
+
+/* 控制台底紋：極淡的點陣格線，只在舞台與主視覺用 */
+.stage-grid {
+  background-image:
+    radial-gradient(rgb(232 236 244 / 0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
 }
 
-/* ── 案件重演 ─────────────────────────────────────── */
+/* 主視覺：訊號色在左上角的一團光，像儀表板剛亮起 */
+.hero-glow {
+  background:
+    radial-gradient(60rem 28rem at 8% -10%, rgb(255 92 58 / 0.16), transparent 60%),
+    radial-gradient(40rem 20rem at 100% 0%, rgb(76 201 240 / 0.08), transparent 60%),
+    var(--color-ink);
+}
+
+/* 情境 chip：預期處置用左側色條與圓點表示，選取時整顆反白 */
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+  padding: 0.45rem 0.8rem 0.45rem 0.6rem;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-align: left;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.chip:hover {
+  border-color: var(--color-line-strong);
+}
+.chip[aria-checked="true"] {
+  background: var(--color-text);
+  color: var(--color-ink);
+  border-color: var(--color-text);
+}
+.chip[aria-checked="true"] .chip-id {
+  color: var(--color-ink);
+}
+.chip-id {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--color-muted);
+  min-width: 1.4rem;
+}
+.chip-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 9999px;
+  flex: none;
+}
+
+/* STR 草稿的「紙」：唯一的亮色區塊，深色字，像一份印出來的公文 */
+.paper {
+  background:
+    repeating-linear-gradient(transparent 0 31px, rgb(26 26 26 / 0.05) 31px 32px),
+    var(--color-paper);
+  color: var(--color-paper-ink);
+  box-shadow: 0 24px 48px -24px rgb(0 0 0 / 0.8);
+}
+.paper pre {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-paper-ink);
+}
+.paper .paper-muted {
+  color: var(--color-paper-muted);
+}
+.paper button {
+  border-color: var(--color-paper-ink);
+  color: var(--color-paper-ink);
+}
+.paper button:hover {
+  background: rgb(26 26 26 / 0.06);
+}
+.paper :focus-visible {
+  outline-color: var(--color-paper-ink);
+}
+
+/* ── 圖譜舞台（案件重演、劇本圖、焦點圖共用） ─────────────────── */
 .replay-stage {
   background:
-    linear-gradient(rgb(255 255 255 / 0.025) 1px, transparent 1px) 0 0 / 100% 40px,
-    var(--color-dark);
+    radial-gradient(rgb(232 236 244 / 0.05) 1px, transparent 1px) 0 0 / 28px 28px,
+    var(--color-ink);
 }
 .replay-edge {
   fill: none;
@@ -140,8 +208,11 @@ select {
   stroke-width: 6;
   stroke-linecap: round;
 }
+.replay-edge.is-dim {
+  opacity: 0.35;
+}
 .replay-node {
-  fill: var(--color-node-idle);
+  fill: var(--color-node-other);
   opacity: 0;
   transform: scale(0.3);
   transition: opacity 0.5s, transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 1), fill 0.6s;
@@ -157,39 +228,51 @@ select {
   fill: var(--color-signal);
 }
 .replay-node.is-target {
-  fill: var(--color-dark);
-  stroke: var(--color-on-dark);
+  fill: var(--color-ink);
+  stroke: var(--color-text);
   stroke-width: 5;
 }
+/* 已標註實體（交易所熱錢包等）：用結構模型色描邊，因為「是否已標註實體」是模型的第 13 個特徵 */
+.replay-node.is-entity {
+  stroke: var(--color-model);
+  stroke-width: 4;
+}
 .replay-coin {
-  fill: var(--color-on-dark);
+  fill: var(--color-text);
 }
 .replay-label text {
   font-family: var(--font-sans);
   font-size: 19px;
-  fill: var(--color-on-dark-muted);
+  fill: var(--color-muted);
 }
 .replay-label text.is-strong {
-  font-family: var(--font-sans);
   font-size: 22px;
   font-weight: 700;
-  fill: var(--color-on-dark);
+  fill: var(--color-text);
+}
+.replay-label text.is-model {
+  fill: var(--color-model);
+  font-weight: 700;
+}
+.replay-label text.is-mono {
+  font-family: var(--font-mono);
+  font-size: 17px;
 }
 .replay-phase {
-  font-family: var(--font-serif);
-  font-size: 27px;
-  font-weight: 900;
-  fill: var(--color-on-dark);
+  font-family: var(--font-sans);
+  font-size: 26px;
+  font-weight: 800;
+  fill: var(--color-text);
   text-anchor: middle;
 }
 .replay-phase-rule {
-  stroke: var(--color-dark-line);
+  stroke: var(--color-line);
   stroke-width: 2;
 }
 .replay-note {
   font-family: var(--font-sans);
   font-size: 18px;
-  fill: var(--color-on-dark-muted);
+  fill: var(--color-muted);
 }
 .replay-fade {
   opacity: 0;
@@ -198,11 +281,10 @@ select {
 .replay-fade.is-on {
   opacity: 1;
 }
-/* 靜態劇本圖：審查目標／選取節點的光暈，與節點資訊框 */
 .graph-halo {
   fill: none;
-  stroke: var(--color-gold-on-dark);
-  stroke-width: 3;
+  stroke: var(--color-text);
+  stroke-width: 2.5;
   stroke-dasharray: 5 5;
 }
 .graph-tip {
@@ -212,11 +294,26 @@ select {
   padding: 0.6rem 0.9rem;
   font-size: 0.9rem;
   line-height: 1.5;
-  color: var(--color-on-dark);
-  background: rgb(8 32 57 / 0.94);
-  border: 1px solid var(--color-dark-line);
-  border-left: 4px solid var(--color-gold-on-dark);
+  color: var(--color-text);
+  background: rgb(19 23 34 / 0.96);
+  border: 1px solid var(--color-line);
+  border-left: 4px solid var(--color-signal);
   pointer-events: none;
+}
+
+/* 手機：圖譜在自己的容器內橫向捲動（不是整頁），節點才看得清楚 */
+@media (max-width: 767px) {
+  .graph-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .graph-scroll > svg {
+    min-width: 760px;
+  }
+  .graph-scroll .graph-tip {
+    position: sticky;
+    left: 1rem;
+  }
 }
 
 /* 舞台寬度跟著視窗高度縮：導覽列＋抬頭＋旁白約佔 350px，其餘留給舞台（長寬比 1200:560） */
@@ -232,8 +329,8 @@ select {
   width: 30cqw;
   min-width: 15rem;
   padding: 1em 1.3em;
-  background: rgb(8 32 57 / 0.94);
-  border: 1px solid var(--color-dark-line);
+  background: rgb(19 23 34 / 0.96);
+  border: 1px solid var(--color-line);
   font-size: max(11px, 1.3cqw);
   opacity: 0;
   transform: translateY(-8px);
@@ -248,13 +345,13 @@ select {
   display: inline-block;
   padding: 0.3rem 0.9rem;
   border: 3px solid currentColor;
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 1.15rem;
-  font-weight: 900;
+  font-weight: 800;
   white-space: nowrap;
 }
 .replay-verdict.is-pass {
-  color: var(--color-pass-on-dark);
+  color: var(--color-pass);
 }
 .replay-verdict.is-block {
   color: var(--color-signal);
@@ -264,7 +361,7 @@ select {
   text-decoration: line-through;
   text-decoration-thickness: 3px;
 }
-/* 算式面板的字級跟著舞台寬度縮放（cqw），不同螢幕上與圖的相對大小一致、不壓到節點 */
+/* 算式面板的字級跟著舞台寬度縮放（cqw） */
 .replay-score {
   position: absolute;
   left: 1.2cqw;
@@ -274,20 +371,21 @@ select {
   gap: 1.3em;
   padding: 0.8em 1.2em;
   font-size: max(10px, 1.25cqw);
-  background: rgb(8 32 57 / 0.94);
-  border: 1px solid var(--color-dark-line);
+  background: rgb(19 23 34 / 0.96);
+  border: 1px solid var(--color-line);
   opacity: 0;
   transform: translateY(10px);
   transition: opacity 0.6s, transform 0.6s;
   pointer-events: none;
 }
 .rs-label {
-  color: var(--color-on-dark-muted);
+  color: var(--color-muted);
 }
 .rs-num {
-  font-family: var(--font-serif);
+  font-family: var(--font-mono);
   font-size: 2.9em;
-  font-weight: 900;
+  font-weight: 800;
+  letter-spacing: -0.04em;
   line-height: 1.05;
 }
 .rs-num.is-total {
@@ -297,7 +395,7 @@ select {
 .rs-op {
   font-family: var(--font-mono);
   font-size: 1.8em;
-  color: var(--color-on-dark-muted);
+  color: var(--color-muted);
   padding-bottom: 0.25em;
 }
 .rs-verdicts {
@@ -321,7 +419,7 @@ select {
   top: 0;
   height: 3px;
   width: 100%;
-  background: var(--color-gold-on-dark);
+  background: var(--color-signal);
   transform-origin: left;
   animation: replay-progress linear forwards;
 }
@@ -353,13 +451,13 @@ select {
 .replay-btn {
   min-width: 2.75rem;
   height: 2.75rem;
-  border: 1px solid var(--color-on-dark-muted);
-  color: var(--color-on-dark);
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-text);
   font-weight: 700;
 }
 .replay-btn:hover:not(:disabled) {
-  border-color: var(--color-on-dark);
-  background: var(--color-dark-line);
+  border-color: var(--color-text);
+  background: var(--color-surface-2);
 }
 .replay-btn:disabled {
   opacity: 0.35;
@@ -376,17 +474,17 @@ select {
   position: absolute;
   inset: 0.5rem;
   border-radius: 9999px;
-  border: 2px solid var(--color-on-dark-muted);
+  border: 2px solid var(--color-muted);
 }
 .replay-dot.is-done::before {
-  background: var(--color-on-dark-muted);
+  background: var(--color-muted);
 }
 .replay-dot.is-on::before {
-  border-color: var(--color-gold-on-dark);
-  background: var(--color-gold-on-dark);
+  border-color: var(--color-signal);
+  background: var(--color-signal);
 }
 
-/* 區塊進場：只在首屏用一次，避免到處亂動 */
+/* 區塊進場：只在首屏用一次 */
 .reveal {
   opacity: 0;
   transform: translateY(14px);
@@ -397,6 +495,19 @@ select {
     opacity: 1;
     transform: none;
   }
+}
+
+/* 模型加註的醒目標示：規則放行 → 模型加註 → 加強審查 */
+.escalate-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  font-weight: 700;
+}
+.escalate-flow > span {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid currentColor;
 }
 
 @media (prefers-reduced-motion: reduce) {

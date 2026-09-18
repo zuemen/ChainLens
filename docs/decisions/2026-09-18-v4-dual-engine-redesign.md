@@ -102,3 +102,31 @@ STR 草稿第四節多一行「結構模型意見（第二引擎，僅供參考�
 - 不說持久化稽核、跨實例限流、混幣偵測、Neo4j、BTC/ETH 即時擷取已完成。
 - 劇本圖是合成資料；尚無商業客戶。
 - 情境八的「誤報率」只用我們自己的反事實數字，不引用查不到一手來源的業界數字。
+
+## 六、前端實作紀錄（2026-09-18，web/）
+
+### 做了什麼
+- `web/src/index.css` @theme 換成第三節 token；全站 Noto Sans TC（移除 Noto Serif TC），數字與地址 JetBrains Mono，大數字 `.big-num`（800、字距 −0.04em）。
+- `web/src/api/types.ts` 加 `rule_decision`、`model`、`model_escalated`、`counterfactual`、`Scenario`。`client.ts` 加 `getScenarios()`。
+- 出金審查：8 個 chip（編號＋標題＋預期處置色點），資料來源 `GET /scenarios`，失敗退回 `web/src/content/scenarios.ts` 的內建常數（與後端 SCENARIOS 逐字相同）。`?case=N` 直開情境、`?auto=1` 自動執行、chip 帶入該情境金額。
+- 決策卡三欄（`DecisionCard.tsx`）：規則引擎（自身／關聯／綜合＋三級刻度）｜結構模型（機率、等級、facts_zh，--model 色）｜處置（最終決定、誰決定、人做最後決定）。`model_escalated` 時顯示「規則放行 → 模型加註 → 加強審查」；`counterfactual` 非 null 時顯示反事實橫幅。
+- 圖譜：情境 1～5 沿用三階段分欄 `ScenarioGraph`；情境 6～8 新做 `FocusGraph`（`focusLayout.ts`）：以目標為中心、上游一階一欄往左、同批收款地址與目標同欄（超過 12 個改兩排交錯）、邊帶箭頭、目標匯入摘要（「11 筆匯入 × 9,000 USDT」）、無關節點收合成一個數字。已標註實體（role `hot_wallet`）用 --model 色描邊。
+- STR 草稿改「紙」（--paper 底、#1A1A1A 字）。
+- 首頁：一句話＋案件重演 → 三個數字（893 億、84%、11 家）→ 八個痛點各對一個情境（點擊 `/screening?case=N&auto=1`）→ 雙引擎 SVG（`DualEngineDiagram.tsx`）→ 第 43 期圖 → 現況／規劃 → CTA。
+- 模型研究：標題改「為什麼是兩個引擎，不是一個模型」，第 43 期圖當主視覺，新增結構模型卡（13 特徵、2 層、hidden 16、RMP、合成資料、八情境全部正確、尚未用真實標註資料驗證），Elliptic 表保留。
+- 離線快照 `screening-snapshot.json` 以本機 API `POST /screen {"target":"TOtcOut01","amount_usdt":500000}` 覆寫（含新欄位；因未帶 request_id，STR 案件編號為「（待填）」）。
+- 截圖在 `docs/images/v4/`（1280×720 與 390×844，各頁 fold 與全頁）。
+
+### 取捨
+- **`--line-strong` 改為 `#6B7A95`**：文件寫 `#4A5670（≥3:1）`，實算於 ink 只有 2.64:1、於 surface 2.43:1，達不到自己宣稱的門檻；改為 #6B7A95（4.48:1／4.13:1）以符合「控制項邊界 ≥3:1」的意圖。其餘 token 照文件；實算：text 16.41:1、muted 7.82:1（文件寫 6.9）、signal 6.33:1（surface 5.83、surface-2 5.24）、model 10.11:1、pass 11.00:1、review 11.06:1、paper-ink 15.46:1，全部 ≥4.5:1。
+- 訊號色按鈕上的字用 ink（6.33:1），不用白（3.07:1）。
+- 痛點 → 情境對應（不是文件表格的一對多，而是一對一）：1→情境 1、2 金檢未評估資金流向→情境 2、3 固定門檻→情境 6、4 STR 申報量→情境 3、5 穩定幣載體→情境 5、6 AI 黑箱→情境 4、7 手法一變→情境 7、8 誤報→情境 8。痛點 7、8 的來源連結指向本 repo 的 `scenario.py`／`main.py`。
+- API 回傳的 graph 節點沒有 `known_entity` 欄位，前端以 role `hot_wallet` 判定「已標註實體」。
+- 手機寬度：整頁無橫向捲動（Playwright 實測 scrollWidth = 390）；圖譜在自己的容器內橫向捲動（min-width 760px），否則 1200 寬的 viewBox 縮到 390px 看不清。
+- 情境 8 的圖只畫目標 4 階內的子圖（34 個節點），另 48 個無關節點以文字收合，不然 84 節點在同一張圖看不出「熱錢包批次出金」。
+- 「研究基礎」與名詞說明收進 `<details>`，文字量減半。
+
+### 未完成
+- Playwright e2e（`web/e2e/screening.spec.ts`）未重跑（只跑 vitest），但頁面上 h1「出金審查」、radio 名稱、「下載草稿（.txt）」等其依賴的文字都保留。
+- 情境 1～5 的 ScenarioGraph 三階段版面未重排（只套新色）。
+

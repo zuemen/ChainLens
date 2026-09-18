@@ -124,14 +124,14 @@ export function CaseReplay() {
     .join('')
 
   return (
-    <div ref={stageRef} className="on-dark bg-dark text-on-dark">
+    <div ref={stageRef} className="bg-ink text-text">
       <div className="mx-auto max-w-6xl 2xl:max-w-7xl px-6 pb-10 pt-1">
         {/* 旁白在舞台上方：評審第一眼先讀到「現在演到哪」，再看圖 */}
-        <div className="grid gap-3 border-t border-dark-line pt-4 md:grid-cols-[1fr_auto] md:items-end">
+        <div className="grid gap-3 border-t border-line pt-4 md:grid-cols-[1fr_auto] md:items-end">
           <div aria-live="polite" className="md:min-h-[6.75rem]">
             <div className="kicker">{current.kicker}</div>
-            <p key={chapter} className="reveal mt-1 font-serif text-2xl font-bold md:text-3xl">{current.title}</p>
-            <p className="mt-1 max-w-3xl leading-relaxed text-on-dark-muted md:text-lg">{current.body}</p>
+            <p key={chapter} className="reveal mt-1 text-2xl font-black md:text-3xl">{current.title}</p>
+            <p className="mt-1 max-w-3xl leading-relaxed text-muted md:text-lg">{current.body}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <button type="button" onClick={() => go(chapter - 1)} disabled={chapter === 0} className="replay-btn" aria-label="上一幕">←</button>
@@ -155,7 +155,7 @@ export function CaseReplay() {
         </div>
 
         {/* 舞台依視窗高度等比縮小：1280×720 的投影機也要整個裝得下 */}
-        <div className="replay-frame relative mx-auto mt-3 border border-dark-line">
+        <div className="replay-frame relative mx-auto mt-3 border border-line">
           {playing && chapter < LAST && (
             <div key={chapter} className="replay-progress" style={{ animationDuration: `${CHAPTER_MS[chapter]}ms` }} aria-hidden="true" />
           )}
@@ -232,10 +232,10 @@ export function CaseReplay() {
           <div className={['replay-ticket', chapter <= 1 ? 'is-on' : ''].join(' ')} aria-hidden={chapter > 1}>
             <div className="kicker">出金申請單</div>
             <dl className="mt-2 space-y-1.5">
-              <div className="flex justify-between gap-6"><dt className="text-on-dark-muted">申請金額</dt><dd className="tabular">{result.amount_usdt.toLocaleString('en-US')} USDT</dd></div>
-              <div className="flex justify-between gap-6"><dt className="text-on-dark-muted">目標地址</dt><dd className="tabular">{target}</dd></div>
-              <div className="flex justify-between gap-6"><dt className="text-on-dark-muted">黑名單比對</dt><dd>未命中</dd></div>
-              <div className="flex justify-between gap-6"><dt className="text-on-dark-muted">通報紀錄</dt><dd>無</dd></div>
+              <div className="flex justify-between gap-6"><dt className="text-muted">申請金額</dt><dd className="tabular">{result.amount_usdt.toLocaleString('en-US')} USDT</dd></div>
+              <div className="flex justify-between gap-6"><dt className="text-muted">目標地址</dt><dd className="tabular">{target}</dd></div>
+              <div className="flex justify-between gap-6"><dt className="text-muted">黑名單比對</dt><dd>未命中</dd></div>
+              <div className="flex justify-between gap-6"><dt className="text-muted">通報紀錄</dt><dd>無</dd></div>
             </dl>
             <div className="replay-verdict is-pass mt-3">名單比對：放行</div>
           </div>
@@ -264,13 +264,13 @@ export function CaseReplay() {
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-4">
-          <Link to="/screening?auto=1" className="bg-white px-6 py-3 font-bold text-brand hover:bg-panel-raised">
+          <Link to="/screening?auto=1" className="bg-signal px-6 py-3 font-bold text-ink hover:opacity-90">
             親手執行一次即時審查
           </Link>
-          <Link to="/workbench" className="border border-on-dark-muted px-6 py-3 hover:border-on-dark">
+          <Link to="/workbench" className="border border-line-strong px-6 py-3 hover:border-text">
             打開金流圖譜工作台
           </Link>
-          <span className="ml-auto text-sm text-on-dark-muted">案件重演・合成劇本資料</span>
+          <span className="ml-auto text-sm text-muted">案件重演・合成劇本資料</span>
         </div>
       </div>
     </div>

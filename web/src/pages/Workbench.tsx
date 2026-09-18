@@ -18,8 +18,7 @@ function sourceLabel(source: GraphSource | null): string {
 export default function Workbench() {
   const [address, setAddress] = useState('')
   const [payload, setPayload] = useState<WorkbenchPayload | null>(null)
-  // 目前畫面上這張圖的來源；只在成功查詢後更新，失敗時維持不變——
-  // 這樣即使查詢失敗、畫面保留上一張圖，標題也如實反映那張圖到底是什麼。
+  // 目前畫面上這張圖的來源；只在成功查詢後更新，失敗時維持不變
   const [source, setSource] = useState<GraphSource | null>(null)
   const [selected, setSelected] = useState<GraphNode | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -34,7 +33,7 @@ export default function Workbench() {
       setSource(mode === 'tron' ? { kind: 'tron', address } : { kind: 'scenario' })
       setSelected(null)
     } catch (err) {
-      // 503＝伺服器未設定金鑰，即時鏈上查詢依設計停用（保護第三方 API 額度）；給訪客看得懂的說明
+      // 503＝伺服器未設定金鑰，即時鏈上查詢依設計停用（保護第三方 API 額度）
       if (err instanceof ApiError && err.status === 503) {
         setError('公開 Demo 站為保護第三方 API 額度，已停用即時鏈上查詢；劇本圖可完整操作。自行部署並設定金鑰後即可查詢真實地址。')
       } else {
@@ -59,15 +58,15 @@ export default function Workbench() {
   const addressValid = TRON_ADDRESS.test(address)
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-4xl font-black leading-tight">金流圖譜工作台</h1>
-        <p className="mt-2 max-w-3xl leading-relaxed text-muted">
-          預設載入與首頁案件重演、出金審查同一份劇本圖，點任一節點可看該地址的風險證據。
-          本機部署並設定金鑰後，可輸入 TRON 主網地址即時抓取 2 階 USDT 金流圖（約 10–30 秒）；
-          公開 Demo 站為保護第三方 API 額度，停用即時查詢。
+    <div className="space-y-5">
+      <header className="border-b border-line pb-5">
+        <div className="kicker">金流圖譜</div>
+        <h1 className="mt-1 text-3xl font-black leading-tight md:text-4xl">金流圖譜工作台</h1>
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
+          預設載入與首頁、出金審查同一份劇本圖，點任一節點看該地址的風險證據。
+          本機部署並設定金鑰後可輸入 TRON 主網地址即時抓取 2 階 USDT 金流圖（約 10–30 秒）；公開 Demo 站停用即時查詢。
         </p>
-      </div>
+      </header>
 
       <Panel>
         <div className="grid gap-4 md:grid-cols-[3fr_auto_auto] md:items-end">
@@ -77,10 +76,10 @@ export default function Workbench() {
               value={address}
               onChange={(event) => setAddress(event.target.value.trim())}
               placeholder="T 開頭主網地址，34 字元"
-              className="tabular mt-1 w-full border border-line bg-panel-raised p-2.5"
+              className="tabular mt-1 w-full border p-2.5"
             />
             {address && !addressValid && (
-              <span className="mt-1 block text-xs" style={{ color: 'var(--color-risk-med)' }}>
+              <span className="mt-1 block text-xs text-review">
                 地址格式不正確：需為 T 開頭的 Base58 主網地址（34 字元）。
               </span>
             )}
@@ -90,7 +89,7 @@ export default function Workbench() {
             type="button"
             onClick={() => load('tron')}
             disabled={!addressValid || loading}
-            className="bg-brand px-6 py-2.5 font-bold text-white hover:bg-brand-hover disabled:opacity-40"
+            className="bg-signal px-6 py-2.5 font-bold text-ink hover:opacity-90 disabled:opacity-40"
           >
             {loading ? '查詢中…' : '抓取真實金流'}
           </button>
@@ -99,25 +98,21 @@ export default function Workbench() {
             type="button"
             onClick={() => load('scenario')}
             disabled={loading}
-            className="border border-line-strong px-5 py-2 hover:bg-panel-raised"
+            className="border border-line-strong px-5 py-2.5 hover:bg-surface-2"
           >
             載入劇本圖
           </button>
         </div>
       </Panel>
 
-      {error && (
-        <ErrorNotice
-          message={error}
-          action={{ label: '回到劇本圖', onClick: () => load('scenario') }}
-        />
-      )}
+      {error && <ErrorNotice message={error} action={{ label: '回到劇本圖', onClick: () => load('scenario') }} />}
 
       {payload && (
         <>
-          <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+          <div className="grid gap-5 lg:grid-cols-[2fr_1fr]">
             <Panel
-              title={`金流圖譜 · ${sourceLabel(source)}（${payload.meta.node_count} 節點 / ${payload.meta.edge_count} 邊）`}
+              kicker={sourceLabel(source)}
+              title={`金流圖譜（${payload.meta.node_count} 節點 / ${payload.meta.edge_count} 邊）`}
             >
               {/* 劇本圖有角色標註：用依洗錢三階段分欄的靜態圖；真實鏈上圖沒有角色，才用力導向排版 */}
               {source?.kind === 'tron' ? (
@@ -126,20 +121,19 @@ export default function Workbench() {
                 <ScenarioGraph payload={payload} selected={selected?.id ?? null} onSelect={handleSelect} />
               )}
               {payload.meta.truncated && (
-                <p className="mt-3 text-xs" style={{ color: 'var(--color-risk-med)' }}>
-                  圖譜顯示風險最高的 {payload.meta.node_count} 個節點（原始共{' '}
-                  {payload.meta.total_node_count} 個）。下方鄰接表僅列出這{' '}
-                  {payload.meta.node_count} 個節點之間的連線，被截斷節點的連線不會出現在表中。
+                <p className="mt-3 text-xs text-review">
+                  圖譜顯示風險最高的 {payload.meta.node_count} 個節點（原始共 {payload.meta.total_node_count} 個）。
+                  下方鄰接表僅列出這 {payload.meta.node_count} 個節點之間的連線。
                 </p>
               )}
-              <p className="mt-3 text-xs text-muted">點選節點查看該地址的風險證據。</p>
             </Panel>
 
-            <Panel title="風險證據">
+            <Panel kicker="節點" title="風險證據">
               {selected ? (
                 <div className="space-y-3">
                   <div className="tabular text-sm">{selected.id}</div>
-                  <div className="tabular text-3xl">{selected.score.toFixed(2)}</div>
+                  <div className="text-sm text-muted">{selected.role_zh}</div>
+                  <div className="big-num text-5xl">{selected.score.toFixed(2)}</div>
                   <p className="text-sm leading-relaxed text-muted">{selected.narrative_zh}</p>
                 </div>
               ) : (
@@ -148,16 +142,11 @@ export default function Workbench() {
             </Panel>
           </div>
 
-          <Panel title="資金流向明細（鄰接表）">
-            <p className="mb-3 text-xs text-muted">
-              圖譜對螢幕閱讀器不可讀，此表為等效的文字替代，列出圖中每一條資金流向。
-            </p>
+          <Panel kicker="文字替代" title="資金流向明細（鄰接表）">
             <div className="max-h-80 overflow-auto">
               <table className="tabular w-full text-left text-xs">
-                <caption className="sr-only">
-                  金流圖譜的鄰接表，欄位為來源地址、目標地址與轉帳金額
-                </caption>
-                <thead className="sticky top-0 bg-panel text-muted">
+                <caption className="sr-only">金流圖譜的鄰接表，欄位為來源地址、目標地址與轉帳金額</caption>
+                <thead className="sticky top-0 bg-surface text-muted">
                   <tr>
                     <th scope="col" className="py-2 pr-4 font-normal">來源</th>
                     <th scope="col" className="py-2 pr-4 font-normal">目標</th>
@@ -177,18 +166,14 @@ export default function Workbench() {
             </div>
           </Panel>
 
-          <Panel title="SNA 指標（依風險分數排序前 15 名）">
+          <Panel kicker="SNA" title="SNA 指標（依風險分數排序前 15 名）">
             <div className="overflow-x-auto">
               <table className="tabular w-full text-left text-xs">
                 <thead className="text-muted">
                   <tr>
-                    {['地址', 'in', 'out', 'PageRank', 'k-core', 'betweenness', '分數'].map(
-                      (head) => (
-                        <th key={head} className="py-2 pr-4 font-normal">
-                          {head}
-                        </th>
-                      ),
-                    )}
+                    {['地址', 'in', 'out', 'PageRank', 'k-core', 'betweenness', '分數'].map((head) => (
+                      <th key={head} className="py-2 pr-4 font-normal">{head}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>

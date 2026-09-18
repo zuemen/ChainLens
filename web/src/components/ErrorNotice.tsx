@@ -8,15 +8,15 @@ export function ErrorNotice({
   return (
     <div
       role="alert"
-      className="flex flex-wrap items-center gap-4 border-l-4 border p-4"
-      style={{ borderColor: 'var(--color-risk-med)', color: 'var(--color-risk-med)' }}
+      className="flex flex-wrap items-center gap-4 border border-l-4 border-line bg-surface p-4 text-sm"
+      style={{ borderLeftColor: 'var(--color-review)', color: 'var(--color-review)' }}
     >
       <span className="flex-1">{message}</span>
       {action && (
         <button
           type="button"
           onClick={action.onClick}
-          className="border border-current px-3 py-1 text-sm"
+          className="border border-current px-3 py-1 text-sm font-bold"
         >
           {action.label}
         </button>

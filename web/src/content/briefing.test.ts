@@ -27,13 +27,20 @@ describe('briefing 內容', () => {
     expect(isUrl(VASP_DEFENSE.source.url)).toBe(true)
   })
 
-  it('每個痛點都有出處、解方，以及在本站哪裡看得到', () => {
-    expect(PAIN_POINTS.length).toBe(6)
+  it('八個痛點都有出處、解方，各對應一個情境，且情境 1～8 各出現一次', () => {
+    expect(PAIN_POINTS.length).toBe(8)
     for (const item of PAIN_POINTS) {
       expect(isUrl(item.source.url)).toBe(true)
       expect(item.solution.length).toBeGreaterThan(0)
       expect(item.seeIt.length).toBeGreaterThan(0)
     }
+    expect([...PAIN_POINTS].map((item) => item.scenario).sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
     expect(STRENGTHS.length).toBe(4)
+  })
+
+  it('痛點 7、8 的佐證只引用本專案自己的來源（劇本／反事實），不引用業界數字', () => {
+    for (const item of PAIN_POINTS.filter((entry) => entry.scenario >= 7)) {
+      expect(item.source.url.startsWith('https://github.com/zuemen/ChainLens/')).toBe(true)
+    }
   })
 })
