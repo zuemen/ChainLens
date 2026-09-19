@@ -13,7 +13,7 @@ export const GRAPH_COLOR = {
   minor: '#4A5670', // 2.64:1 — 剝離的小額地址（刻意退到背景）
   other: '#C9D2E0', // 13.0:1 — 其他出金地址
   focus: '#FFFFFF', // 19.43:1
-  entity: '#4CC9F0', // 10.11:1 — 已標註實體描邊（結構模型專用色）
+  entity: '#4CC9F0', // 10.11:1 — 已標註實體描邊（GNN 模型專用色）
   bg: '#0B0D12',
   edge: '#5F6E8C', // 3.79:1
 } as const

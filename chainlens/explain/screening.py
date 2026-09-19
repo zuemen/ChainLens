@@ -27,7 +27,7 @@ DEFAULT_MAX_HOPS = 4  # 關聯追溯之最大階數
 DEFAULT_DECAY = 0.6  # 每增加一階，風險傳導衰減係數
 BLOCK_THRESHOLD = 0.7  # ≥ 此分數 → 暫緩出金並人工審查
 REVIEW_THRESHOLD = 0.4  # ≥ 此分數 → 加強審查（EDD）
-# 結構模型（第二引擎）判定 ≥ 此機率、而規則引擎放行時，升為加強審查。
+# GNN 模型（第二引擎）判定 ≥ 此機率、而規則引擎放行時，升為加強審查。
 # 模型不能單獨暫緩出金：暫緩必須有可稽核的證據鏈與 STR 草稿，模型只負責「把人叫來看」。
 MODEL_ESCALATE_THRESHOLD = 0.7
 
@@ -134,7 +134,7 @@ def _expm1(v: float) -> float:
 
 
 def model_opinion(g: nx.DiGraph, target: Any, model: StructuralModel) -> dict[str, Any]:
-    """結構模型對目標地址的判定，附上它看到的結構事實（輸入特徵的白話，不是模型內部權重）。"""
+    """GNN 模型對目標地址的判定，附上它看到的結構事實（輸入特徵的白話，不是模型內部權重）。"""
     scores = model.predict(g)
     score = float(scores.get(target, 0.0))
     nodes, raw = node_features(g)
@@ -160,7 +160,7 @@ def model_opinion(g: nx.DiGraph, target: Any, model: StructuralModel) -> dict[st
         "level": level,
         "facts_zh": facts,
         "narrative_zh": (
-            f"結構模型（GraphSAGE）判定為洗錢基礎設施的機率 {score:.2f}"
+            f"圖神經網路模型（GNN，GraphSAGE）判定為洗錢基礎設施的機率 {score:.2f}"
             f"（{_MODEL_LEVEL_ZH[level]}）；模型看到的結構："
             + "、".join(facts)
             + "，並參考上下游兩階地址的同類特徵。"
@@ -225,7 +225,7 @@ def generate_str_draft(
         f"　　{evidence['narrative_zh']}",
     ]
     if model is not None:
-        lines.append(f"　　結構模型意見（第二引擎，僅供參考）：{model['narrative_zh']}")
+        lines.append(f"　　GNN 模型意見（第二引擎，僅供參考）：{model['narrative_zh']}")
     lines += [
         "",
         "五、建議處置",
@@ -257,7 +257,7 @@ def screen_withdrawal(
     pipeline 傳入已算好的 run_pipeline 結果時直接重用，供同一張圖上還要
     產生圖譜 JSON 的呼叫端（API /screen）避免重算。
 
-    雙引擎：規則引擎給出 rule_decision；結構模型（model，預設載入已匯出權重）
+    雙引擎：規則引擎給出 rule_decision；GNN 模型（model，預設載入已匯出權重）
     判定 ≥ MODEL_ESCALATE_THRESHOLD 且規則放行時，升為加強審查（model_escalated=True）。
     use_model=False 時完全不諮詢模型（單引擎對照用）。
     """
@@ -306,7 +306,7 @@ def screen_withdrawal(
         and opinion["score"] >= MODEL_ESCALATE_THRESHOLD
     )
     decision = "review" if escalated else rule_decision
-    decision_zh = _DECISION_ZH[decision] + ("——由結構模型加註" if escalated else "")
+    decision_zh = _DECISION_ZH[decision] + ("——由GNN 模型加註" if escalated else "")
 
     narrative: list[str] = [
         f"出金目標地址 {target}（申請金額 {amount_usdt:,.0f} USDT）"
@@ -314,7 +314,7 @@ def screen_withdrawal(
     ]
     if escalated:
         narrative.append(
-            f"結構模型判定 {opinion['score']:.2f}（高）：沒有規則圖樣命中，但結構與洗錢中繼一致，"
+            f"GNN 模型判定 {opinion['score']:.2f}（高）：沒有規則圖樣命中，但結構與洗錢中繼一致，"
             f"升為{_DECISION_ZH['review']}，由法遵人員決定。"
         )
     if associations:

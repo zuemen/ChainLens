@@ -15,7 +15,7 @@ interface ModelEval {
 
 export const RESEARCH_EVAL = raw as { generated: string; test_nodes: number; test_illicit: number; models: ModelEval[] }
 
-/** 類別色依模型固定指派（不隨篩選或排序重新上色）：RF＝文字色、GraphSAGE＋RMP＝結構模型色、GCN＝加強審查色 */
+/** 類別色依模型固定指派（不隨篩選或排序重新上色）：RF＝文字色、GraphSAGE＋RMP＝GNN 模型色、GCN＝加強審查色 */
 const SERIES_COLOR: Record<string, string> = {
   rf: 'var(--color-text)',
   'sage-rmp': 'var(--color-model)',

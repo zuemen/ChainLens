@@ -31,7 +31,7 @@ function RiskScale({ score, color }: { score: number; color: string }) {
   )
 }
 
-/** 決策卡：三欄「規則引擎｜結構模型｜處置（誰決定）」，下方為敘事與（情境 8 專屬的）反事實橫幅 */
+/** 決策卡：三欄「規則引擎｜GNN 模型｜處置（誰決定）」，下方為敘事與（情境 8 專屬的）反事實橫幅 */
 export function DecisionCard({ result }: { result: ScreenResult }) {
   const ruleColor = DECISION_COLOR[result.rule_decision]
   const finalColor = DECISION_COLOR[result.decision]
@@ -59,9 +59,9 @@ export function DecisionCard({ result }: { result: ScreenResult }) {
           </p>
         </div>
 
-        {/* 欄二：結構模型（第二引擎專用色） */}
+        {/* 欄二：GNN 模型（第二引擎專用色） */}
         <div className="md:px-6" style={{ color: 'var(--color-text)' }}>
-          <div className="kicker" style={{ color: 'var(--color-model)' }}>引擎二　結構模型 GraphSAGE</div>
+          <div className="kicker" style={{ color: 'var(--color-model)' }}>引擎二　圖神經網路模型（GNN）</div>
           {model ? (
             <>
               <div className="mt-3 flex items-end gap-3">
@@ -85,7 +85,7 @@ export function DecisionCard({ result }: { result: ScreenResult }) {
               </ul>
             </>
           ) : (
-            <p className="mt-3 text-sm text-muted">未載入結構模型。</p>
+            <p className="mt-3 text-sm text-muted">未載入GNN 模型。</p>
           )}
           <p className="mt-3 text-xs leading-relaxed text-muted">
             模型 ≥0.70 時只能把「放行」升為「加強審查」；不能單獨暫緩、不能降級。
@@ -112,7 +112,7 @@ export function DecisionCard({ result }: { result: ScreenResult }) {
               由規則引擎決定
               {model && (
                 <span className="text-muted">
-                  ；結構模型{modelHigh ? '同樣判高' : '未觸發升級'}
+                  ；GNN 模型{modelHigh ? '同樣判高' : '未觸發升級'}
                   {modelHigh && result.decision !== 'pass' ? '，意見一致' : ''}
                 </span>
               )}

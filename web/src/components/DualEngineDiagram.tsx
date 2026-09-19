@@ -1,5 +1,5 @@
 /**
- * 雙引擎架構圖（純 SVG）：交易圖 → 規則引擎／結構模型 → 融合（模型只升不降）→ 三級處置 → 法遵人員。
+ * 雙引擎架構圖（純 SVG）：交易圖 → 規則引擎／GNN 模型 → 融合（模型只升不降）→ 三級處置 → 法遵人員。
  * 規則通道用文字色、模型通道用 --model 色；融合之後的三級處置用各自的處置色。
  */
 export function DualEngineDiagram() {
@@ -10,7 +10,7 @@ export function DualEngineDiagram() {
         viewBox="0 0 1200 420"
         className="block h-auto w-full"
         role="img"
-        aria-label="雙引擎架構：交易圖同時送進規則引擎與結構模型；規則引擎給出暫緩、加強審查或放行，結構模型只能把放行升為加強審查；三級處置最後由法遵人員決定。"
+        aria-label="雙引擎架構：交易圖同時送進規則引擎與GNN 模型；規則引擎給出暫緩、加強審查或放行，GNN 模型只能把放行升為加強審查；三級處置最後由法遵人員決定。"
       >
         <defs>
           <marker id="de-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
@@ -44,12 +44,12 @@ export function DualEngineDiagram() {
           <text x="345" y="154" className="fill-muted text-[14px]">輸出：綜合分數、證據鏈、STR 草稿</text>
         </g>
 
-        {/* 2b 結構模型 */}
+        {/* 2b GNN 模型 */}
         <g>
           <rect x="325" y="240" width="300" height="140" className={box} strokeWidth="1.5" />
           <rect x="325" y="240" width="300" height="4" className="fill-model" />
           <text x="345" y="272" className="fill-model text-[13px] font-mono">02　引擎二</text>
-          <text x="345" y="302" className="fill-model text-[22px] font-black">結構模型 GraphSAGE</text>
+          <text x="345" y="302" className="fill-model text-[22px] font-black">GNN 模型 GraphSAGE</text>
           <text x="345" y="330" className="fill-muted text-[14px]">13 個結構特徵、2 層、反向訊息傳遞</text>
           <text x="345" y="354" className="fill-muted text-[14px]">輸出：洗錢基礎設施機率＋結構事實</text>
         </g>

@@ -14,14 +14,14 @@ const NUMBERS = [
 
 const DONE = [
   '規則引擎：4 類洗錢圖樣＋上游 4 階關聯傳導',
-  '結構模型：GraphSAGE 13 特徵，模型只升不降',
+  'GNN 模型：GraphSAGE 13 特徵，模型只升不降',
   '八個情境、三級處置、STR 草稿',
   '網站、API 與金流圖譜工作台',
   '自動化測試持續整合',
 ]
 
 const ROADMAP = [
-  '結構模型以真實標註資料驗證',
+  'GNN 模型以真實標註資料驗證',
   '判定證據持久化稽核留存',
   '跨實例限流與混幣服務偵測',
   '比特幣／以太坊即時擷取',
@@ -57,7 +57,7 @@ export default function Landing() {
         <div className="stage-grid pointer-events-none absolute inset-0 opacity-60" aria-hidden="true" />
         <div className="relative mx-auto max-w-6xl px-4 pb-4 pt-12 md:px-6 md:pt-16 2xl:max-w-7xl">
           <div className="reveal max-w-4xl">
-            <div className="kicker">虛擬資產出金審查・規則引擎＋結構模型</div>
+            <div className="kicker">虛擬資產出金審查・規則引擎＋圖神經網路模型</div>
             <h1 className="mt-4 text-4xl font-black leading-[1.15] md:text-6xl">
               錢出去之前，
               <br />
@@ -145,7 +145,7 @@ export default function Landing() {
             index="02"
             kicker="架構"
             title="兩個引擎，一個處置"
-            lead="規則引擎負責可稽核的暫緩／加強審查／放行；結構模型只能把「放行」升為「加強審查」，抓規則沒寫到的變體。"
+            lead="規則引擎負責可稽核的暫緩／加強審查／放行；GNN 模型只能把「放行」升為「加強審查」，抓規則沒寫到的變體。"
           />
           <div className="mt-8 border border-line bg-ink p-2 md:p-6">
             <DualEngineDiagram />
@@ -190,7 +190,7 @@ export default function Landing() {
             index="04"
             kicker="現況與規劃"
             title="已經可以操作的，與接下來要做的"
-            lead="示範情境為合成劇本資料；結構模型尚未用真實標註資料驗證；尚無商業客戶。原始碼與測試全部公開。"
+            lead="示範情境為合成劇本資料；GNN 模型尚未用真實標註資料驗證；尚無商業客戶。原始碼與測試全部公開。"
           />
           <div className="mt-10 grid gap-10 md:grid-cols-2">
             <div>

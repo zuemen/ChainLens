@@ -1,4 +1,4 @@
-"""結構模型（第二引擎）與八個 Demo 情境的鎖定測試。
+"""GNN 模型（第二引擎）與八個 Demo 情境的鎖定測試。
 
 招牌數字（0.7307／0.5321／0.2577／0.0962）由 test_api_web 鎖定；這裡鎖的是：
 模型在劇本圖上的區間、模型只能升級不能降級、實體標註排除誤報、情境清單與 API 一致。
@@ -78,9 +78,9 @@ def test_relay_escalated_by_model_only_to_review() -> None:
     assert result["model"]["score"] >= MODEL_ESCALATE_THRESHOLD
     assert result["model_escalated"] is True
     assert result["decision"] == "review"
-    assert "結構模型加註" in result["decision_zh"]
+    assert "GNN 模型加註" in result["decision_zh"]
     assert result["str_draft_zh"] is not None
-    assert "結構模型意見" in result["str_draft_zh"]
+    assert "GNN 模型意見" in result["str_draft_zh"]
     assert "五、建議處置" in result["str_draft_zh"]
 
 

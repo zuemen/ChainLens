@@ -210,7 +210,7 @@ export const PAIN_POINTS: PainPoint[] = [
     pain: '手法一變，寫死的規則就失效',
     evidence: '劇本情境七：中繼地址一進一出、金額原封不動往下傳，四類規則圖樣一個都沒命中，規則引擎綜合 0.19 判放行。Elliptic 第 43 期實驗也顯示，單押任何一個模型，手法一變就同時失效。',
     source: { label: '本專案劇本定義 chainlens/data/scenario.py（情境七）', url: 'https://github.com/zuemen/ChainLens/blob/main/chainlens/data/scenario.py' },
-    solution: '第二引擎：GraphSAGE 結構模型讀 13 個結構特徵，判 0.98，把「放行」升為「加強審查」。模型只能升不能降，人做最後決定。',
+    solution: '第二引擎：圖神經網路模型（GNN）讀 13 個結構特徵，判 0.98，把「放行」升為「加強審查」。模型只能升不能降，人做最後決定。',
     seeIt: '出金審查・情境七（規則 0.19 → 模型 0.98）',
     scenario: 7,
   },

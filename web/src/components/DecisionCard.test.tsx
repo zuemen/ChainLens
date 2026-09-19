@@ -46,7 +46,7 @@ const escalated: ScreenResult = {
   self_score: 0.0686,
   association_score: 0.1296,
   decision: 'review',
-  decision_zh: '加強審查（EDD）——由結構模型加註',
+  decision_zh: '加強審查（EDD）——由GNN 模型加註',
   rule_decision: 'pass',
   model: { score: 0.9785, level: 'high', facts_zh: ['收款來源 1 個、付款對象 0 個'], narrative_zh: '模型敘事' },
   model_escalated: true,
@@ -87,7 +87,7 @@ describe('DecisionCard 三欄', () => {
     expect(screen.getByText(/引擎一/)).toBeDefined()
   })
 
-  it('結構模型欄：機率、等級與模型看到的結構事實', () => {
+  it('GNN 模型欄：機率、等級與模型看到的結構事實', () => {
     render(<DecisionCard result={blocked} />)
     expect(screen.getByText('0.99')).toBeDefined()
     expect(screen.getByText('高')).toBeDefined()
@@ -110,12 +110,12 @@ describe('DecisionCard 三欄', () => {
     expect(flow.textContent).toContain('加強審查')
     expect(screen.getByText('0.19')).toBeDefined()
     expect(screen.getByText('0.98')).toBeDefined()
-    expect(screen.getByText('加強審查（EDD）——由結構模型加註')).toBeDefined()
+    expect(screen.getByText('加強審查（EDD）——由GNN 模型加註')).toBeDefined()
   })
 
-  it('沒有結構模型時不會炸掉，顯示未載入', () => {
+  it('沒有GNN 模型時不會炸掉，顯示未載入', () => {
     render(<DecisionCard result={{ ...blocked, model: null }} />)
-    expect(screen.getByText('未載入結構模型。')).toBeDefined()
+    expect(screen.getByText('未載入GNN 模型。')).toBeDefined()
   })
 
   it('放行時顯示放行文案', () => {

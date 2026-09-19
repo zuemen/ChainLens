@@ -16,7 +16,7 @@ const FINDINGS = [
   { num: '43', title: '第 43 期起，手法一變，三個模型同時失效', body: '暗網市場關閉後，F1 全部跌到接近 0。靠歷史標註訓練的模型追不上新手法。' },
 ]
 
-/** 結構模型（第二引擎）的 13 個特徵，全部只靠交易圖就算得出 */
+/** GNN 模型（第二引擎）的 13 個特徵，全部只靠交易圖就算得出 */
 const FEATURES = [
   '收款來源數', '付款對象數', '轉入總額', '轉出總額', '轉出占比', '資金停留時間', '有無轉入',
   '有無轉出', '活躍時間跨度', '一小時內最多來源數', '一小時內最多去向數', '轉出金額變異係數', '是否已標註實體',
@@ -41,7 +41,7 @@ export default function Research() {
         <h1 className="mt-2 text-3xl font-black leading-tight md:text-5xl">為什麼是兩個引擎，不是一個模型</h1>
         <p className="mt-4 max-w-3xl leading-relaxed text-muted">
           我們在 Elliptic 公開比特幣交易資料集（官方時間切分）實測圖神經網路與傳統模型。
-          結論寫在下面這張圖：模型抓得到大部分非法交易，但手法一變就同時失效。所以規則引擎負責可稽核的處置，結構模型只補抓變體、只升不降。
+          結論寫在下面這張圖：模型抓得到大部分非法交易，但手法一變就同時失效。所以規則引擎負責可稽核的處置，GNN 模型只補抓變體、只升不降。
         </p>
       </header>
 
@@ -64,8 +64,8 @@ export default function Research() {
         ))}
       </section>
 
-      {/* 結構模型卡 */}
-      <Panel kicker="引擎二" title="結構模型卡：GraphSAGE" accent="var(--color-model)">
+      {/* GNN 模型卡 */}
+      <Panel kicker="引擎二" title="GNN 模型卡：GraphSAGE" accent="var(--color-model)">
         <div className="grid gap-6 md:grid-cols-[1fr_1.2fr]">
           <dl className="grid grid-cols-2 gap-4">
             {[

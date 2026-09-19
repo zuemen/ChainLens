@@ -61,7 +61,7 @@ export interface Association {
   motifs: string[]
 }
 
-/** 結構模型（第二引擎，GraphSAGE）的意見：只能把「放行」升為「加強審查」，不能單獨暫緩、不能降級 */
+/** GNN 模型（第二引擎，GraphSAGE）的意見：只能把「放行」升為「加強審查」，不能單獨暫緩、不能降級 */
 export interface ModelOpinion {
   /** 洗錢基礎設施機率 0～1 */
   score: number
@@ -93,7 +93,7 @@ export interface ScreenResult {
   /** 規則引擎單獨的結論 */
   rule_decision: Decision
   model: ModelOpinion | null
-  /** true 時 decision 為 review、decision_zh 帶「——由結構模型加註」 */
+  /** true 時 decision 為 review、decision_zh 帶「——由GNN 模型加註」 */
   model_escalated: boolean
   counterfactual: Counterfactual | null
   narrative_zh: string

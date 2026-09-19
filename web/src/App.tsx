@@ -101,7 +101,7 @@ export default function App() {
           <div className="space-y-1">
             <div className="text-base font-bold text-text">鏈鏡 ChainLens</div>
             <p>NewJeans always five｜國立政治大學資訊管理學系</p>
-            <p>研究用途，非投資或法律建議。出金審查 Demo 情境為合成劇本資料；結構模型尚未用真實標註資料驗證；尚無商業客戶。</p>
+            <p>研究用途，非投資或法律建議。出金審查 Demo 情境為合成劇本資料；GNN 模型尚未用真實標註資料驗證；尚無商業客戶。</p>
           </div>
           <div className="flex items-end gap-6">
             <a href={REPO_URL} className="underline underline-offset-4 hover:text-text">
