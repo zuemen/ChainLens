@@ -94,7 +94,7 @@ export default function Screening() {
           <h1 className="mt-1 text-3xl font-black leading-tight md:text-4xl">出金審查</h1>
         </div>
         <p className="max-w-xl text-sm leading-relaxed text-muted">
-          八個情境，三種處置。點任一情境，約 1 秒看到規則引擎與GNN 模型各自的判斷。
+          八個情境，三種處置。點任一情境，約 1 秒看到規則引擎與 GNN 模型各自的判斷。
         </p>
       </header>
 

@@ -98,7 +98,7 @@ export const ROLE_ZH: Record<string, string> = {
   exchange_user: '交易所用戶',
 }
 
-/** 已標註實體的角色：圖上用 --model 色描邊，因為「是否已標註實體」是GNN 模型的第 13 個特徵 */
+/** 已標註實體的角色：圖上用 --model 色描邊，因為「是否已標註實體」是 GNN 模型的第 13 個特徵 */
 export const ENTITY_ROLES = new Set(['hot_wallet'])
 
 export const DECISION_ZH: Record<Decision, string> = {

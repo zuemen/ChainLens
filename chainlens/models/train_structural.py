@@ -1,4 +1,4 @@
-"""訓練GNN 模型（GraphSAGE + reverse message passing）並匯出成 numpy 可讀的 JSON 權重。
+"""訓練 GNN 模型（GraphSAGE + reverse message passing）並匯出成 numpy 可讀的 JSON 權重。
 
 用法：
     .venv/Scripts/python.exe -m chainlens.models.train_structural [--graphs 240] [--epochs 400]

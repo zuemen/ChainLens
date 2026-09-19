@@ -306,7 +306,7 @@ def screen_withdrawal(
         and opinion["score"] >= MODEL_ESCALATE_THRESHOLD
     )
     decision = "review" if escalated else rule_decision
-    decision_zh = _DECISION_ZH[decision] + ("——由GNN 模型加註" if escalated else "")
+    decision_zh = _DECISION_ZH[decision] + ("——由 GNN 模型加註" if escalated else "")
 
     narrative: list[str] = [
         f"出金目標地址 {target}（申請金額 {amount_usdt:,.0f} USDT）"

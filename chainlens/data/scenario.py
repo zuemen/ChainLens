@@ -38,7 +38,7 @@ WITHDRAWAL_TARGET = "TOtcOut01"  # 交易所用戶申請出金之目標地址（
 NORMAL_TARGET = "TNormalUser01"  # 對照組：正常用戶出金地址
 DOWNSTREAM_TARGET = "TDownstream01"  # 延伸情境：贓款自 OTC 地址再轉一手的下游地址
 SPLIT_TARGET = "TSplitOut01"  # 情境六：拆單——11 筆低於固定門檻的小額匯入同一地址
-RELAY_TARGET = "TRelay03"  # 情境七：快進快出中繼——規則無圖樣可命中，由GNN 模型加註
+RELAY_TARGET = "TRelay03"  # 情境七：快進快出中繼——規則無圖樣可命中，由 GNN 模型加註
 EXCHANGE_USER_TARGET = "TExchUser07"  # 情境八：交易所熱錢包批次出金的正常用戶（不可誤傷）
 # 出金審查 Demo 可選的八個情境（順序即前端顯示順序）
 SCREEN_TARGETS = (

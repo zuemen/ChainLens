@@ -85,7 +85,7 @@ export function DecisionCard({ result }: { result: ScreenResult }) {
               </ul>
             </>
           ) : (
-            <p className="mt-3 text-sm text-muted">未載入GNN 模型。</p>
+            <p className="mt-3 text-sm text-muted">未載入 GNN 模型。</p>
           )}
           <p className="mt-3 text-xs leading-relaxed text-muted">
             模型 ≥0.70 時只能把「放行」升為「加強審查」；不能單獨暫緩、不能降級。

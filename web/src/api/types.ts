@@ -93,7 +93,7 @@ export interface ScreenResult {
   /** 規則引擎單獨的結論 */
   rule_decision: Decision
   model: ModelOpinion | null
-  /** true 時 decision 為 review、decision_zh 帶「——由GNN 模型加註」 */
+  /** true 時 decision 為 review、decision_zh 帶「——由 GNN 模型加註」 */
   model_escalated: boolean
   counterfactual: Counterfactual | null
   narrative_zh: string

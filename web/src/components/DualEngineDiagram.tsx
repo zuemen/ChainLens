@@ -10,7 +10,7 @@ export function DualEngineDiagram() {
         viewBox="0 0 1200 420"
         className="block h-auto w-full"
         role="img"
-        aria-label="雙引擎架構：交易圖同時送進規則引擎與GNN 模型；規則引擎給出暫緩、加強審查或放行，GNN 模型只能把放行升為加強審查；三級處置最後由法遵人員決定。"
+        aria-label="雙引擎架構：交易圖同時送進規則引擎與 GNN 模型；規則引擎給出暫緩、加強審查或放行，GNN 模型只能把放行升為加強審查；三級處置最後由法遵人員決定。"
       >
         <defs>
           <marker id="de-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
