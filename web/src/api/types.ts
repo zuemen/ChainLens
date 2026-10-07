@@ -5,11 +5,14 @@ export interface GraphNode {
   id: string
   role: string
   role_zh: string
+  /** 以下 *_en 為英文版；舊版 API 不帶，前端退回中文 */
+  role_en?: string
   score: number
   label: RiskLabel
   is_motif_center: boolean
   pagerank: number
   narrative_zh: string
+  narrative_en?: string
 }
 
 export interface GraphEdge {
@@ -28,6 +31,7 @@ export interface GraphMeta {
   /** 超過 300 節點上限而截斷；前端必須告知使用者 */
   truncated: boolean
   story_zh: string | null
+  story_en?: string | null
   degraded: boolean
 }
 
@@ -42,6 +46,7 @@ export interface MotifHit {
   center: string
   nodes: string[]
   description_zh: string
+  description_en?: string
 }
 
 export interface Evidence {
@@ -52,6 +57,7 @@ export interface Evidence {
   community_risk_ratio: number
   motif_hits: MotifHit[]
   narrative_zh: string
+  narrative_en?: string
 }
 
 export interface Association {
@@ -68,15 +74,19 @@ export interface ModelOpinion {
   level: RiskLabel
   /** 模型看到的結構事實（白話） */
   facts_zh: string[]
+  facts_en?: string[]
   narrative_zh: string
+  narrative_en?: string
 }
 
 /** 反事實：拿掉實體標註再算一次，讓誤報有多嚴重看得見（只有情境 8 非 null） */
 export interface Counterfactual {
   label_zh: string
+  label_en?: string
   risk_score: number
   decision: Decision
   decision_zh: string
+  decision_en?: string
   /** 同一批被連坐的用戶數 */
   affected_nodes: number
 }
@@ -90,6 +100,7 @@ export interface ScreenResult {
   /** 最終處置（規則引擎結論，或被模型升級後的結論） */
   decision: Decision
   decision_zh: string
+  decision_en?: string
   /** 規則引擎單獨的結論 */
   rule_decision: Decision
   model: ModelOpinion | null
@@ -97,9 +108,11 @@ export interface ScreenResult {
   model_escalated: boolean
   counterfactual: Counterfactual | null
   narrative_zh: string
+  narrative_en?: string
   associations: Association[]
   evidence: Evidence | null
   str_draft_zh: string | null
+  str_draft_en?: string | null
   /** 目標不在圖中時後端才會帶這個鍵，正常路徑完全沒有此欄位 */
   insufficient_data?: true
   graph: GraphPayload
@@ -113,6 +126,9 @@ export interface Scenario {
   title_zh: string
   summary_zh: string
   pain_zh: string
+  title_en?: string
+  summary_en?: string
+  pain_en?: string
   amount_usdt: number
   expect: Decision
 }

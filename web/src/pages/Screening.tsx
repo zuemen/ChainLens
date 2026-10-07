@@ -6,10 +6,11 @@ import type { Scenario, ScreenResult } from '../api/types'
 import { DecisionCard } from '../components/DecisionCard'
 import { ErrorNotice } from '../components/ErrorNotice'
 import { Panel } from '../components/Panel'
-import { DECISION_COLOR, DECISION_ZH, FOCUS_LAYOUT_IDS, SCENARIOS_FALLBACK } from '../content/scenarios'
+import { DECISION_COLOR, DECISION_EN, DECISION_ZH, FOCUS_LAYOUT_IDS, SCENARIOS_FALLBACK } from '../content/scenarios'
 import { FocusGraph } from '../graph/FocusGraph'
-import { MOTIF_ZH } from '../graph/motifs'
+import { MOTIF_EN, MOTIF_ZH } from '../graph/motifs'
 import { ScenarioGraph } from '../graph/ScenarioGraph'
+import { useLang } from '../i18n'
 
 /** 證據鏈預設只列最接近的幾條，其餘收合 */
 const EVIDENCE_PREVIEW = 4
@@ -20,6 +21,9 @@ function scenarioFromParam(list: Scenario[], raw: string | null): Scenario {
 }
 
 export default function Screening() {
+  const { t, lang } = useLang()
+  const decisionText = lang === 'en' ? DECISION_EN : DECISION_ZH
+  const motifText = lang === 'en' ? MOTIF_EN : MOTIF_ZH
   const [searchParams] = useSearchParams()
   const [scenarios, setScenarios] = useState<Scenario[]>(SCENARIOS_FALLBACK)
   const initial = scenarioFromParam(SCENARIOS_FALLBACK, searchParams.get('case'))
@@ -47,7 +51,7 @@ export default function Screening() {
       } else {
         setResult(null)
         setOffline(false)
-        setError(err instanceof ApiError ? err.detail : '審查失敗，請稍後再試。')
+        setError(err instanceof ApiError ? err.detail : t('審查失敗，請稍後再試。', 'Screening failed — please try again shortly.'))
       }
     } finally {
       setLoading(false)
@@ -75,8 +79,10 @@ export default function Screening() {
   }
 
   function downloadStr() {
-    if (!result?.str_draft_zh) return
-    const url = URL.createObjectURL(new Blob([result.str_draft_zh], { type: 'text/plain' }))
+    if (!result) return
+    const draft = t(result.str_draft_zh, result.str_draft_en)
+    if (!draft) return
+    const url = URL.createObjectURL(new Blob([draft], { type: 'text/plain' }))
     const anchor = document.createElement('a')
     anchor.href = url
     anchor.download = `STR_draft_${result.target}.txt`
@@ -85,21 +91,25 @@ export default function Screening() {
   }
 
   const shown = result && result.target === target ? result : null
+  const strDraft = shown ? t(shown.str_draft_zh, shown.str_draft_en) : null
 
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
         <div>
-          <div className="kicker">即時出金審查・雙引擎</div>
-          <h1 className="mt-1 text-3xl font-black leading-tight md:text-4xl">出金審查</h1>
+          <div className="kicker">{t('即時出金審查・雙引擎', 'Live withdrawal screening · dual engine')}</div>
+          <h1 className="mt-1 text-3xl font-black leading-tight md:text-4xl">{t('出金審查', 'Withdrawal screening')}</h1>
         </div>
         <p className="max-w-xl text-sm leading-relaxed text-muted">
-          八個情境，三種處置。點任一情境，約 1 秒看到規則引擎與 GNN 模型各自的判斷。
+          {t(
+            '八個情境，三種處置。點任一情境，約 1 秒看到規則引擎與 GNN 模型各自的判斷。',
+            'Eight scenarios, three possible decisions. Pick one and in about a second you see what the rule engine and the GNN model each conclude. All addresses and amounts are synthetic.',
+          )}
         </p>
       </header>
 
       {/* 情境列：8 個 chip，色點＝預期處置 */}
-      <div role="radiogroup" aria-label="選擇示範情境" className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div role="radiogroup" aria-label={t('選擇示範情境', 'Choose a demo scenario')} className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {scenarios.map((item) => (
           <button
             key={item.id}
@@ -111,8 +121,8 @@ export default function Screening() {
           >
             <span className="chip-id">{String(item.id).padStart(2, '0')}</span>
             <span className="chip-dot" style={{ background: DECISION_COLOR[item.expect] }} aria-hidden="true" />
-            <span className="text-sm font-bold leading-tight">{item.title_zh}</span>
-            <span className="sr-only">，預期{DECISION_ZH[item.expect]}</span>
+            <span className="text-sm font-bold leading-tight">{t(item.title_zh, item.title_en)}</span>
+            <span className="sr-only">{t('，預期', ', expected: ')}{decisionText[item.expect]}</span>
           </button>
         ))}
       </div>
@@ -121,16 +131,16 @@ export default function Screening() {
         <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-end">
           <div>
             <div className="flex flex-wrap items-baseline gap-x-3">
-              <span className="tabular text-sm text-muted">情境 {String(active.id).padStart(2, '0')}</span>
-              <span className="text-xl font-black">{active.title_zh}</span>
-              <span className="text-sm" style={{ color: DECISION_COLOR[active.expect] }}>預期：{DECISION_ZH[active.expect]}</span>
+              <span className="tabular text-sm text-muted">{t('情境', 'Scenario')} {String(active.id).padStart(2, '0')}</span>
+              <span className="text-xl font-black">{t(active.title_zh, active.title_en)}</span>
+              <span className="text-sm" style={{ color: DECISION_COLOR[active.expect] }}>{t('預期：', 'Expected: ')}{decisionText[active.expect]}</span>
             </div>
-            <p className="mt-2 leading-relaxed text-muted">{active.summary_zh}</p>
-            <p className="mt-1 text-sm text-muted">痛點：{active.pain_zh}</p>
+            <p className="mt-2 leading-relaxed text-muted">{t(active.summary_zh, active.summary_en)}</p>
+            <p className="mt-1 text-sm text-muted">{t('痛點：', 'Pain point: ')}{t(active.pain_zh, active.pain_en)}</p>
           </div>
           <div className="flex flex-wrap items-end gap-3">
             <label className="block">
-              <span className="text-xs text-muted">申請金額（USDT）</span>
+              <span className="text-xs text-muted">{t('申請金額（USDT）', 'Requested amount (USDT)')}</span>
               <input
                 type="number"
                 min={1}
@@ -146,36 +156,44 @@ export default function Screening() {
               disabled={loading}
               className="bg-signal px-6 py-2.5 font-bold text-ink hover:opacity-90 disabled:opacity-50"
             >
-              {loading ? '審查中…' : '執行出金審查'}
+              {loading ? t('審查中…', 'Screening…') : t('執行出金審查', 'Run screening')}
             </button>
           </div>
         </div>
       </Panel>
 
-      {error && <ErrorNotice message={error} action={{ label: '重試', onClick: () => run() }} />}
+      {error && <ErrorNotice message={error} action={{ label: t('重試', 'Retry'), onClick: () => run() }} />}
 
       {offline && (
-        <ErrorNotice message="目前顯示的是內建離線快照（案例金額固定為 500,000 USDT，與上方輸入的申請金額無關），非即時查詢結果。" />
+        <ErrorNotice
+          message={t(
+            '目前顯示的是內建離線快照（案例金額固定為 500,000 USDT，與上方輸入的申請金額無關），非即時查詢結果。',
+            'You are seeing the built-in offline snapshot (the amount is fixed at 500,000 USDT regardless of the input above), not a live result.',
+          )}
+        />
       )}
 
       {!shown && !error && !loading && (
         <div className="border border-dashed border-line-strong p-8 text-muted">
-          <p className="text-lg font-bold text-text">按「執行出金審查」，約 1 秒出結果</p>
+          <p className="text-lg font-bold text-text">{t('按「執行出金審查」，約 1 秒出結果', 'Press "Run screening" — results in about a second')}</p>
           <p className="mt-2 text-sm leading-relaxed">
-            依序看到：決策卡（規則引擎｜GNN 模型｜處置）→ 金流圖 → 證據鏈 → STR 草稿。
+            {t(
+              '依序看到：決策卡（規則引擎｜GNN 模型｜處置）→ 金流圖 → 證據鏈 → STR 草稿。',
+              "You'll see, in order: the decision card (rule engine | GNN model | decision) → fund-flow graph → evidence chain → STR draft.",
+            )}
           </p>
         </div>
       )}
 
       {loading && !shown && (
-        <div className="border border-line bg-surface p-8 text-muted" aria-live="polite">審查中…</div>
+        <div className="border border-line bg-surface p-8 text-muted" aria-live="polite">{t('審查中…', 'Screening…')}</div>
       )}
 
       {shown && (
         <>
           <DecisionCard result={shown} />
 
-          <Panel kicker="金流圖" title="錢怎麼流到這個地址">
+          <Panel kicker={t('金流圖', 'Fund-flow graph')} title={t('錢怎麼流到這個地址', 'How the money reached this address')}>
             {FOCUS_LAYOUT_IDS.has(active.id) ? (
               <FocusGraph payload={shown.graph} target={shown.target} highlightPath={shown.highlight_path} />
             ) : (
@@ -185,8 +203,8 @@ export default function Screening() {
 
           {shown.associations.length > 0 && (
             <Panel
-              kicker="規則引擎"
-              title={`資金關聯證據鏈（共 ${shown.associations.length} 條）`}
+              kicker={t('規則引擎', 'Rule engine')}
+              title={t(`資金關聯證據鏈（共 ${shown.associations.length} 條）`, `Fund-flow evidence chain (${shown.associations.length} links)`)}
               actions={
                 shown.associations.length > EVIDENCE_PREVIEW && (
                   <button
@@ -195,7 +213,7 @@ export default function Screening() {
                     aria-expanded={showAllEvidence}
                     className="border border-line-strong px-3 py-1 text-sm hover:bg-surface-2"
                   >
-                    {showAllEvidence ? '只看最接近的幾條' : '顯示全部'}
+                    {showAllEvidence ? t('只看最接近的幾條', 'Show nearest only') : t('顯示全部', 'Show all')}
                   </button>
                 )
               }
@@ -205,10 +223,10 @@ export default function Screening() {
                   <li key={association.risky_node} className="border-l-2 border-signal pl-4">
                     <div className="tabular">
                       {association.risky_node}
-                      <span className="ml-2 text-muted">{association.distance} 階關聯</span>
+                      <span className="ml-2 text-muted">{t(`${association.distance} 階關聯`, `${association.distance} hop${association.distance > 1 ? 's' : ''} away`)}</span>
                     </div>
                     <div className="mt-1 text-muted">
-                      命中圖樣：{association.motifs.map((m) => MOTIF_ZH[m] ?? m).join('、')}
+                      {t('命中圖樣：', 'Patterns matched: ')}{association.motifs.map((m) => motifText[m] ?? m).join(t('、', ', '))}
                     </div>
                     <div className="tabular mt-1 text-xs text-muted">{association.path.join(' → ')}</div>
                   </li>
@@ -217,23 +235,23 @@ export default function Screening() {
             </Panel>
           )}
 
-          {shown.str_draft_zh && (
+          {strDraft && (
             <section className="paper p-6 md:p-8" aria-labelledby="str-title">
               <header className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-current/20 pb-3">
                 <div>
                   <div className="paper-muted tabular text-xs">STR DRAFT・{shown.target}</div>
-                  <h2 id="str-title" className="text-lg font-black">可疑交易申報（STR）草稿</h2>
+                  <h2 id="str-title" className="text-lg font-black">{t('可疑交易申報（STR）草稿', 'Suspicious transaction report (STR) draft')}</h2>
                 </div>
                 <button type="button" onClick={downloadStr} className="border px-3 py-1 text-sm font-bold">
-                  下載草稿（.txt）
+                  {t('下載草稿（.txt）', 'Download draft (.txt)')}
                 </button>
               </header>
-              <pre className="whitespace-pre-wrap text-[13px] leading-8">{shown.str_draft_zh}</pre>
+              <pre className="whitespace-pre-wrap text-[13px] leading-8">{strDraft}</pre>
             </section>
           )}
 
           <details className="border border-line bg-surface p-5">
-            <summary className="cursor-pointer font-bold">結構證據 JSON（API 原始回傳）</summary>
+            <summary className="cursor-pointer font-bold">{t('結構證據 JSON（API 原始回傳）', 'Structural evidence JSON (raw API response)')}</summary>
             <pre className="tabular mt-4 max-h-96 overflow-auto text-xs text-muted">
               {JSON.stringify({ evidence: shown.evidence, model: shown.model, counterfactual: shown.counterfactual }, null, 2)}
             </pre>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { GraphNode, GraphPayload } from '../api/types'
-import { ENTITY_ROLES, ROLE_ZH } from '../content/scenarios'
+import { ENTITY_ROLES, ROLE_EN, ROLE_ZH } from '../content/scenarios'
+import { useLang } from '../i18n'
 import { layoutFocus, type FocusNode } from './focusLayout'
 import { STAGE } from './replayLayout'
 
@@ -17,6 +18,8 @@ export function FocusGraph({
   target: string
   highlightPath?: string[]
 }) {
+  const { t, lang } = useLang()
+  const en = lang === 'en'
   const layout = useMemo(() => layoutFocus(payload, target), [payload, target])
   const [hover, setHover] = useState<GraphNode | null>(null)
   const nodeById = useMemo(() => new Map(payload.nodes.map((node) => [node.id, node])), [payload.nodes])
@@ -30,10 +33,16 @@ export function FocusGraph({
     incomingToTarget.length === 0
       ? null
       : sameAmount
-        ? `${incomingToTarget.length} 筆匯入 × ${incomingToTarget[0].amount.toLocaleString('en-US')} USDT`
+        ? en
+          ? `${incomingToTarget.length} deposits × ${incomingToTarget[0].amount.toLocaleString('en-US')} USDT`
+          : `${incomingToTarget.length} 筆匯入 × ${incomingToTarget[0].amount.toLocaleString('en-US')} USDT`
         : incomingToTarget.length === 1
-          ? `匯入 ${incomingToTarget[0].amount.toLocaleString('en-US')} USDT`
-          : `${incomingToTarget.length} 筆匯入，合計 ${incomingToTarget.reduce((sum, edge) => sum + edge.amount, 0).toLocaleString('en-US')} USDT`
+          ? en
+            ? `Received ${incomingToTarget[0].amount.toLocaleString('en-US')} USDT`
+            : `匯入 ${incomingToTarget[0].amount.toLocaleString('en-US')} USDT`
+          : en
+            ? `${incomingToTarget.length} deposits, ${incomingToTarget.reduce((sum, edge) => sum + edge.amount, 0).toLocaleString('en-US')} USDT total`
+            : `${incomingToTarget.length} 筆匯入，合計 ${incomingToTarget.reduce((sum, edge) => sum + edge.amount, 0).toLocaleString('en-US')} USDT`
 
   // 匯入摘要要放目標右側還是下方：估字寬（CJK 17px、其餘 10.5px），右邊放不下就放下方
   const summaryWidth = [...(incomingSummary ?? '')].reduce((sum, ch) => sum + (ch.charCodeAt(0) > 255 ? 17 : 10.5), 0)
@@ -49,10 +58,13 @@ export function FocusGraph({
     const parts = [...count.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 2)
-      .map(([role, n]) => `${(ROLE_ZH[role] ?? role).replace('（已標註實體）', '')}${n > 1 ? ` ×${n}` : ''}`)
+      .map(([role, n]) => {
+        const name = en ? (ROLE_EN[role] ?? role).replace(' (labelled entity)', '') : (ROLE_ZH[role] ?? role).replace('（已標註實體）', '')
+        return `${name}${n > 1 ? ` ×${n}` : ''}`
+      })
     const xs = members.map((member) => member.x)
     const x = (Math.min(...xs) + Math.max(...xs)) / 2
-    const label = column === 0 ? `同批收款 ×${members.length}` : parts.join('、')
+    const label = column === 0 ? `${en ? 'Same batch' : '同批收款'} ×${members.length}` : parts.join(en ? ', ' : '、')
     return { column, x, label }
   })
 
@@ -78,7 +90,10 @@ export function FocusGraph({
           className="replay-stage block h-auto w-full"
           data-testid="graph-view"
           role="img"
-          aria-label={`金流圖：以審查目標 ${target} 為中心，上游在左、資金由左往右流；訊號色粗線為風險資金路徑。${incomingSummary ?? ''}`}
+          aria-label={t(
+            `金流圖：以審查目標 ${target} 為中心，上游在左、資金由左往右流；訊號色粗線為風險資金路徑。${incomingSummary ?? ''}`,
+            `Fund-flow graph centred on target ${target}: upstream on the left, money flows left to right; the thick signal-coloured line is the risky fund path. ${incomingSummary ?? ''}`,
+          )}
         >
           <defs>
             <marker id="focus-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -89,7 +104,7 @@ export function FocusGraph({
             </marker>
           </defs>
 
-          <text x="40" y="40" className="replay-note">資金流向 →</text>
+          <text x="40" y="40" className="replay-note">{t('資金流向 →', 'Money flows →')}</text>
           <g className="replay-label">
             {heads.map((head) => head.label && (
               <text key={head.column} x={head.x} y="76" textAnchor="middle">{head.label}</text>
@@ -133,7 +148,12 @@ export function FocusGraph({
                   onPointerEnter={() => info && setHover(info)}
                   onPointerLeave={() => setHover(null)}
                 >
-                  <title>{`${node.id}｜${info?.role_zh ?? node.role}｜自身結構分數 ${(info?.score ?? 0).toFixed(2)}`}</title>
+                  <title>
+                    {t(
+                      `${node.id}｜${info?.role_zh ?? node.role}｜自身結構分數 ${(info?.score ?? 0).toFixed(2)}`,
+                      `${node.id} | ${info?.role_en ?? ROLE_EN[node.role] ?? node.role} | own structural score ${(info?.score ?? 0).toFixed(2)}`,
+                    )}
+                  </title>
                 </circle>
               </g>
             )
@@ -142,7 +162,7 @@ export function FocusGraph({
           <g className="replay-label">
             {layout.nodes.has(target) && (
               <>
-                <text x={point(target).x} y={point(target).y - 30} textAnchor="middle" className="is-strong">審查目標</text>
+                <text x={point(target).x} y={point(target).y - 30} textAnchor="middle" className="is-strong">{t('審查目標', 'Target')}</text>
                 {incomingSummary && (summaryFitsRight ? (
                   // 右側放得下（情境 8：目標欄不在最右邊）就放右側，不壓到同批收款地址的連線
                   <text x={point(target).x + 62} y={point(target).y + 7} textAnchor="start" className="is-mono">{incomingSummary}</text>
@@ -154,16 +174,19 @@ export function FocusGraph({
             {[...layout.nodes.values()]
               .filter((node) => ENTITY_ROLES.has(node.role))
               .map((node) => (
-                <text key={node.id} x={node.x} y={node.y - 34} textAnchor="middle" className="is-model">已標註實體</text>
+                <text key={node.id} x={node.x} y={node.y - 34} textAnchor="middle" className="is-model">{t('已標註實體', 'Labelled entity')}</text>
               ))}
             {[...layout.nodes.values()]
               .filter((node) => node.role === 'aggregator')
               .map((node) => (
-                <text key={node.id} x={node.x} y={node.y - 34} textAnchor="middle" className="is-strong">集資主錢包</text>
+                <text key={node.id} x={node.x} y={node.y - 34} textAnchor="middle" className="is-strong">{t('集資主錢包', 'Collection wallet')}</text>
               ))}
             {layout.hidden > 0 && (
               <text x={STAGE.width - 40} y={STAGE.height - 24} textAnchor="end" className="replay-note">
-                另 {layout.hidden} 個地址與目標 4 階內無資金關聯，未畫出
+                {t(
+                  `另 ${layout.hidden} 個地址與目標 4 階內無資金關聯，未畫出`,
+                  `${layout.hidden} more addresses have no fund link to the target within 4 hops and are not drawn`,
+                )}
               </text>
             )}
           </g>
@@ -172,10 +195,10 @@ export function FocusGraph({
         {hover && (
           <div className="graph-tip" role="status">
             <div className="tabular font-bold">{hover.id}</div>
-            <div>{hover.role_zh}</div>
+            <div>{t(hover.role_zh, hover.role_en)}</div>
             <div>
-              自身結構分數 <span className="tabular font-bold">{hover.score.toFixed(2)}</span>
-              {hover.is_motif_center && '　命中洗錢圖樣'}
+              {t('自身結構分數 ', 'Own structural score ')}<span className="tabular font-bold">{hover.score.toFixed(2)}</span>
+              {hover.is_motif_center && t('　命中洗錢圖樣', ' · matches a laundering pattern')}
             </div>
           </div>
         )}
@@ -186,23 +209,24 @@ export function FocusGraph({
 }
 
 export function GraphLegend({ hasPath, hasEntity }: { hasPath: boolean; hasEntity: boolean }) {
+  const { t } = useLang()
   return (
     <figcaption>
       <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
         {hasPath && (
           <li className="flex items-center gap-2">
             <span aria-hidden="true" className="inline-block h-1 w-7 bg-signal" />
-            流向審查目標的風險資金路徑
+            {t('流向審查目標的風險資金路徑', 'Risky fund path into the target')}
           </li>
         )}
-        <li className="flex items-center gap-2"><span aria-hidden="true" className="inline-block h-3.5 w-3.5 rounded-full border-[3px] border-text bg-ink" />審查目標</li>
-        <li className="flex items-center gap-2"><span aria-hidden="true" className="inline-block h-3 w-3 rounded-full bg-signal" />高風險地址</li>
-        <li className="flex items-center gap-2"><span aria-hidden="true" className="inline-block h-3 w-3 rounded-full bg-node-victim" />被害人</li>
+        <li className="flex items-center gap-2"><span aria-hidden="true" className="inline-block h-3.5 w-3.5 rounded-full border-[3px] border-text bg-ink" />{t('審查目標', 'Target')}</li>
+        <li className="flex items-center gap-2"><span aria-hidden="true" className="inline-block h-3 w-3 rounded-full bg-signal" />{t('高風險地址', 'High-risk address')}</li>
+        <li className="flex items-center gap-2"><span aria-hidden="true" className="inline-block h-3 w-3 rounded-full bg-node-victim" />{t('被害人', 'Victim')}</li>
         {hasEntity && (
-          <li className="flex items-center gap-2"><span aria-hidden="true" className="inline-block h-3.5 w-3.5 rounded-full border-[3px] border-model bg-node-other" />已標註實體</li>
+          <li className="flex items-center gap-2"><span aria-hidden="true" className="inline-block h-3.5 w-3.5 rounded-full border-[3px] border-model bg-node-other" />{t('已標註實體', 'Labelled entity')}</li>
         )}
-        <li className="flex items-center gap-2"><span aria-hidden="true" className="inline-block h-3 w-3 rounded-full bg-node-other" />其他地址</li>
-        <li>滑鼠移到節點上可看地址與分數</li>
+        <li className="flex items-center gap-2"><span aria-hidden="true" className="inline-block h-3 w-3 rounded-full bg-node-other" />{t('其他地址', 'Other address')}</li>
+        <li>{t('滑鼠移到節點上可看地址與分數', 'Hover a node to see its address and score')}</li>
       </ul>
     </figcaption>
   )

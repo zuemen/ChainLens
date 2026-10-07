@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react'
 import type { GraphNode, GraphPayload } from '../api/types'
 import { ENTITY_ROLES } from '../content/scenarios'
+import { useLang } from '../i18n'
 import { GraphLegend } from './FocusGraph'
 import { STAGE, edgePath, layoutReplay } from './replayLayout'
 
-const PHASES: { label: string; roles: string[] }[] = [
-  { label: '集資', roles: ['victim', 'support', 'aggregator'] },
-  { label: '分層', roles: ['mule', 'peel'] },
-  { label: '整合', roles: ['otc', 'downstream'] },
+const PHASES: { label: string; label_en: string; roles: string[] }[] = [
+  { label: '集資', label_en: 'Collect', roles: ['victim', 'support', 'aggregator'] },
+  { label: '分層', label_en: 'Layer', roles: ['mule', 'peel'] },
+  { label: '整合', label_en: 'Integrate', roles: ['otc', 'downstream'] },
 ]
 
 const ROLE_HEAD: Record<string, string> = {
@@ -15,6 +16,13 @@ const ROLE_HEAD: Record<string, string> = {
   support: '客服收款',
   mule: '車手',
   peel: '剝洋蔥鏈',
+}
+
+const ROLE_HEAD_EN: Record<string, string> = {
+  victim: 'Victims',
+  support: 'Fake support',
+  mule: 'Mules',
+  peel: 'Peeling chains',
 }
 
 /**
@@ -35,13 +43,14 @@ export function ScenarioGraph({
   selected?: string | null
   onSelect?: (nodeId: string) => void
 }) {
+  const { t, lang } = useLang()
   const layout = useMemo(() => layoutReplay(payload, target ?? ''), [payload, target])
   const [hover, setHover] = useState<GraphNode | null>(null)
   const pathEdges = new Set(highlightPath.slice(0, -1).map((id, index) => `${id}>${highlightPath[index + 1]}`))
   const pathNodes = new Set(highlightPath)
   const point = (id: string) => layout.get(id) as { x: number; y: number }
 
-  const columnHeads = Object.entries(ROLE_HEAD)
+  const columnHeads = Object.entries(lang === 'en' ? ROLE_HEAD_EN : ROLE_HEAD)
     .map(([role, label]) => {
       const members = payload.nodes.filter((node) => node.role === role)
       if (members.length === 0) return null
@@ -53,7 +62,7 @@ export function ScenarioGraph({
   const phases = PHASES.map((phase) => {
     const xs = payload.nodes.filter((node) => phase.roles.includes(node.role)).map((node) => point(node.id).x)
     if (xs.length === 0) return null
-    return { label: phase.label, from: Math.min(...xs) - 34, to: Math.max(...xs) + 34 }
+    return { label: t(phase.label, phase.label_en), from: Math.min(...xs) - 34, to: Math.max(...xs) + 34 }
   }).filter((item): item is { label: string; from: number; to: number } => item !== null)
 
   const active = hover ?? payload.nodes.find((node) => node.id === selected) ?? null
@@ -67,7 +76,10 @@ export function ScenarioGraph({
           className="replay-stage block h-auto w-full"
           data-testid="graph-view"
           role="img"
-          aria-label="金流圖：由左至右為集資、分層、整合三階段；訊號色粗線為流向審查目標的風險資金路徑"
+          aria-label={t(
+            '金流圖：由左至右為集資、分層、整合三階段；訊號色粗線為流向審查目標的風險資金路徑',
+            'Fund-flow graph: left to right are the collect, layer and integrate stages; the thick signal-coloured line is the risky fund path into the target',
+          )}
         >
           {phases.map((phase) => (
             <g key={phase.label}>
@@ -111,7 +123,12 @@ export function ScenarioGraph({
                   onPointerLeave={() => setHover(null)}
                   onClick={onSelect ? () => onSelect(node.id) : undefined}
                 >
-                  <title>{`${node.id}｜${node.role_zh}｜自身結構分數 ${node.score.toFixed(2)}`}</title>
+                  <title>
+                    {t(
+                      `${node.id}｜${node.role_zh}｜自身結構分數 ${node.score.toFixed(2)}`,
+                      `${node.id} | ${node.role_en ?? node.role} | own structural score ${node.score.toFixed(2)}`,
+                    )}
+                  </title>
                 </circle>
               </g>
             )
@@ -119,13 +136,13 @@ export function ScenarioGraph({
 
           <g className="replay-label">
             {hub && pathNodes.has(hub.id) && (
-              <text x={point(hub.id).x} y={point(hub.id).y - 36} textAnchor="middle" className="is-strong">集資主錢包</text>
+              <text x={point(hub.id).x} y={point(hub.id).y - 36} textAnchor="middle" className="is-strong">{t('集資主錢包', 'Collection wallet')}</text>
             )}
             {target && layout.has(target) && (
-              <text x={point(target).x} y={point(target).y - 30} textAnchor="middle" className="is-strong">審查目標</text>
+              <text x={point(target).x} y={point(target).y - 30} textAnchor="middle" className="is-strong">{t('審查目標', 'Target')}</text>
             )}
             {payload.nodes.some((node) => node.role === 'normal') && (
-              <text x="762" y="500" className="replay-note">與本案無關的正常交易</text>
+              <text x="762" y="500" className="replay-note">{t('與本案無關的正常交易', 'Normal transactions, unrelated')}</text>
             )}
           </g>
         </svg>
@@ -133,17 +150,17 @@ export function ScenarioGraph({
         {active && (
           <div className="graph-tip" role="status">
             <div className="tabular font-bold">{active.id}</div>
-            <div>{active.role_zh}</div>
+            <div>{t(active.role_zh, active.role_en)}</div>
             <div>
-              自身結構分數 <span className="tabular font-bold">{active.score.toFixed(2)}</span>
-              {active.is_motif_center && '　命中洗錢圖樣'}
+              {t('自身結構分數 ', 'Own structural score ')}<span className="tabular font-bold">{active.score.toFixed(2)}</span>
+              {active.is_motif_center && t('　命中洗錢圖樣', ' · matches a laundering pattern')}
             </div>
           </div>
         )}
       </div>
 
       <GraphLegend hasPath={highlightPath.length > 0} hasEntity={payload.nodes.some((node) => ENTITY_ROLES.has(node.role))} />
-      {onSelect && <p className="mt-1 text-sm text-muted">點選節點查看該地址的風險證據。</p>}
+      {onSelect && <p className="mt-1 text-sm text-muted">{t('點選節點查看該地址的風險證據。', "Click a node to see that address's risk evidence.")}</p>}
     </figure>
   )
 }

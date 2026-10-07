@@ -10,7 +10,7 @@ from typing import Any
 import networkx as nx
 import pandas as pd
 
-from chainlens.data.scenario import ROLE_ZH
+from chainlens.data.scenario import ROLE_EN, ROLE_ZH
 
 DEFAULT_ROLE = "normal"
 SNA_TABLE_LIMIT = 15
@@ -67,11 +67,13 @@ def graph_to_json(
                 "id": str(node),
                 "role": role,
                 "role_zh": ROLE_ZH.get(role, role),
+                "role_en": ROLE_EN.get(role, role),
                 "score": evidence.get("score", 0.0),
                 "label": evidence.get("label", "low"),
                 "is_motif_center": node in motif_centers,
                 "pagerank": float(pagerank.get(node, 0.0)),
                 "narrative_zh": evidence.get("narrative_zh", ""),
+                "narrative_en": evidence.get("narrative_en", ""),
             }
         )
 
@@ -98,6 +100,7 @@ def graph_to_json(
             "edge_count": len(edges),
             "truncated": len(nodes) < g.number_of_nodes(),
             "story_zh": g.graph.get("story_zh"),
+            "story_en": g.graph.get("story_en"),
             "degraded": degraded,
         },
     }

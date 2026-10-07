@@ -1,9 +1,16 @@
 import type { RiskLabel } from '../api/types'
+import { useLang } from '../i18n'
 
 const LABEL_ZH: Record<RiskLabel, string> = {
   high: '高風險',
   medium: '中風險',
   low: '低風險',
+}
+
+const LABEL_EN: Record<RiskLabel, string> = {
+  high: 'High risk',
+  medium: 'Medium risk',
+  low: 'Low risk',
 }
 
 const LABEL_COLOR: Record<RiskLabel, string> = {
@@ -17,13 +24,14 @@ export function riskColor(label: RiskLabel): string {
 }
 
 export function RiskBadge({ score, label }: { score: number; label: RiskLabel }) {
+  const { lang } = useLang()
   return (
     <span className="inline-flex flex-wrap items-baseline gap-x-2">
       <span className="big-num text-6xl" style={{ color: riskColor(label) }}>
         {score.toFixed(2)}
       </span>
       <span className="whitespace-nowrap text-sm font-bold" style={{ color: riskColor(label) }}>
-        {LABEL_ZH[label]}
+        {(lang === 'en' ? LABEL_EN : LABEL_ZH)[label]}
       </span>
     </span>
   )

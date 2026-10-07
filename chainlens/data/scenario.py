@@ -33,6 +33,22 @@ ROLE_ZH = {
     "hot_wallet": "交易所熱錢包（已標註實體）",
     "exchange_user": "交易所用戶",
 }
+ROLE_EN = {
+    "victim": "Victim",
+    "support": "Fake support collection address",
+    "aggregator": "Collection master wallet",
+    "mule": "Money-mule address",
+    "peel": "Peeling-chain relay",
+    "peel_side": "Peeled-off small address",
+    "otc": "OTC cash-out address",
+    "normal": "Ordinary address",
+    "downstream": "Downstream recipient",
+    "smurf": "Smurfing nominee address",
+    "split_collector": "Split-deposit collector",
+    "relay": "Fast in-out relay",
+    "hot_wallet": "Exchange hot wallet (labelled entity)",
+    "exchange_user": "Exchange user",
+}
 
 WITHDRAWAL_TARGET = "TOtcOut01"  # 交易所用戶申請出金之目標地址（可疑）
 NORMAL_TARGET = "TNormalUser01"  # 對照組：正常用戶出金地址
@@ -62,6 +78,9 @@ SCENARIOS: tuple[dict[str, object], ...] = (
         "summary_zh": "用戶申請把 50 萬 USDT 提領到一個從未被通報、不在任何黑名單上的地址。",
         "pain_zh": "黑名單永遠慢一步；金檢要求評估提幣資金流向",
         "amount_usdt": WITHDRAWAL_AMOUNT_USDT,
+        "title_en": "Clean address, dirty upstream",
+        "summary_en": "A user asks to withdraw 500,000 USDT to an address that has never been reported and is on no blacklist.",
+        "pain_en": "Blacklists are always a step behind; examiners expect withdrawal fund flows to be assessed",
         "expect": "block",
     },
     {
@@ -71,6 +90,9 @@ SCENARIOS: tuple[dict[str, object], ...] = (
         "summary_zh": "OTC 出金地址收到贓款後，再轉給一個全新地址；用戶要提領到這個第三階地址。",
         "pain_zh": "單一固定門檻無法分級處置",
         "amount_usdt": WITHDRAWAL_AMOUNT_USDT,
+        "title_en": "Stolen funds moved one more hop",
+        "summary_en": "After receiving stolen funds, the OTC cash-out address forwards them to a brand-new address; the user withdraws to this third-hop address.",
+        "pain_en": "A single fixed threshold cannot grade the response",
         "expect": "review",
     },
     {
@@ -80,6 +102,9 @@ SCENARIOS: tuple[dict[str, object], ...] = (
         "summary_zh": "提領目標本身就是洗錢執行層的車手地址，但因為是新地址，尚未被任何單位通報。",
         "pain_zh": "詐騙地址用過即丟，來不及被通報",
         "amount_usdt": WITHDRAWAL_AMOUNT_USDT,
+        "title_en": "Withdrawal straight to a mule",
+        "summary_en": "The destination is itself a money-mule address in the laundering layer, but it is new and has not been reported by anyone yet.",
+        "pain_en": "Fraud addresses are used once and discarded before anyone can report them",
         "expect": "block",
     },
     {
@@ -89,6 +114,9 @@ SCENARIOS: tuple[dict[str, object], ...] = (
         "summary_zh": "提領目標是一位被害人的地址——曾把錢匯給詐團，但資金來源方不該被加分。",
         "pain_zh": "寧可錯殺的風控會傷害被害人與正常用戶",
         "amount_usdt": WITHDRAWAL_AMOUNT_USDT,
+        "title_en": "Victims are not penalised",
+        "summary_en": "The destination belongs to a victim — someone who sent money to the scammers. Being a source of funds should not raise their risk.",
+        "pain_en": "Better-safe-than-sorry controls end up hurting victims and ordinary users",
         "expect": "pass",
     },
     {
@@ -98,6 +126,9 @@ SCENARIOS: tuple[dict[str, object], ...] = (
         "summary_zh": "對照組：同一套引擎、同樣 50 萬 USDT，提領到一個只有日常小額往來的地址。",
         "pain_zh": "對照組",
         "amount_usdt": WITHDRAWAL_AMOUNT_USDT,
+        "title_en": "Ordinary user",
+        "summary_en": "Control case: same engine, same 500,000 USDT, withdrawn to an address with only small everyday transfers.",
+        "pain_en": "Control case",
         "expect": "pass",
     },
     {
@@ -110,6 +141,9 @@ SCENARIOS: tuple[dict[str, object], ...] = (
         ),
         "pain_zh": "監控門檻是固定金額，拆單就繞得過",
         "amount_usdt": 9_000.0,
+        "title_en": "Splitting to dodge a fixed threshold",
+        "summary_en": "This request is only 9,000 USDT, below the platform's fixed monitoring threshold — yet within 40 minutes the same address has received 9,000 each from 11 addresses.",
+        "pain_en": "Monitoring thresholds are fixed amounts, so splitting gets around them",
         "expect": "block",
     },
     {
@@ -121,6 +155,9 @@ SCENARIOS: tuple[dict[str, object], ...] = (
         ),
         "pain_zh": "手法一變，寫死的規則就失效",
         "amount_usdt": 200_000.0,
+        "title_en": "Fast in-out relay",
+        "summary_en": "The address takes funds in and passes them straight on, holding each for under ten minutes with the amount untouched. No rule pattern matches.",
+        "pain_en": "Change the technique and hard-coded rules stop working",
         "expect": "review",
     },
     {
@@ -132,6 +169,9 @@ SCENARIOS: tuple[dict[str, object], ...] = (
         ),
         "pain_zh": "誤報拖垮人工審查量，也趕跑正常用戶",
         "amount_usdt": 3_000.0,
+        "title_en": "User paid by an exchange hot-wallet batch",
+        "summary_en": "An exchange hot wallet pays out to 30 users within 20 minutes — structurally almost identical to a laundering fan-out.",
+        "pain_en": "False positives swamp manual review and drive away legitimate users",
         "expect": "pass",
     },
 )
@@ -299,6 +339,11 @@ def load_withdrawal_scenario(
         story_zh=(
             "交易所用戶申請將 50 萬 USDT 提領至外部地址 TOtcOut01。"
             "該地址從未被通報，但與假投資詐騙集資主錢包存在二階資金關聯。"
+        ),
+        story_en=(
+            "An exchange user asks to withdraw 500,000 USDT to external address TOtcOut01. "
+            "The address has never been reported, but it is two hops downstream of a "
+            "fake-investment fraud's collection wallet."
         ),
     )
     if with_downstream:

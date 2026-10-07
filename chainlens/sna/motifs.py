@@ -23,6 +23,7 @@ class MotifHit:
     # 承擔風險的成員（計分與關聯追溯用）；nodes 則是參與圖樣的全部地址。
     # 兩者分開是因為 fan-in／集散的資金來源是被害人，而 fan-out 下游與剝洋蔥鏈是洗錢執行層。
     risky_nodes: list[Any] = field(default_factory=list)
+    description_en: str = ""
 
 
 def _max_distinct_in_window(
@@ -63,6 +64,10 @@ def detect_fan_in(
                         f"節點 {node} 於短時間窗內接收來自 {count} 個不同地址的資金匯入，"
                         "符合集資扇入（fan-in）圖樣。"
                     ),
+                    description_en=(
+                        f"Node {node} received funds from {count} distinct addresses within a "
+                        "short window — a fan-in collection pattern."
+                    ),
                 )
             )
     return hits
@@ -89,6 +94,10 @@ def detect_fan_out(
                     description_zh=(
                         f"節點 {node} 於短時間窗內快速拆分資金至 {count} 個不同地址，"
                         "符合快速分散（fan-out）圖樣。"
+                    ),
+                    description_en=(
+                        f"Node {node} split funds to {count} distinct addresses within a short "
+                        "window — a rapid fan-out pattern."
                     ),
                 )
             )
@@ -143,6 +152,10 @@ def detect_peeling_chain(
                 f"自節點 {chain[0]} 起連續 {len(chain) - 1} 跳，每跳保留大額轉出並剝離小額，"
                 "符合剝洋蔥鏈（peeling chain）圖樣。"
             ),
+            description_en=(
+                f"Starting at node {chain[0]}, {len(chain) - 1} consecutive hops each pass on "
+                "the bulk and peel off a small amount — a peeling-chain pattern."
+            ),
         )
         for chain in maximal
     ]
@@ -184,6 +197,10 @@ def detect_gather_scatter(
                 description_zh=(
                     f"節點 {node} 先自 {in_count} 個來源集中資金、再拆分至 "
                     f"{out_count} 個地址，符合集散（gather-scatter/smurfing）圖樣。"
+                ),
+                description_en=(
+                    f"Node {node} first gathered funds from {in_count} sources, then split them "
+                    f"to {out_count} addresses — a gather-scatter (smurfing) pattern."
                 ),
             )
         )

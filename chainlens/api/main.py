@@ -232,9 +232,11 @@ def _counterfactual_without_entity_labels(
     alt = screen_withdrawal(h, target, amount_usdt)
     return {
         "label_zh": "若沒有實體標註",
+        "label_en": "Without the entity label",
         "risk_score": alt["risk_score"],
         "decision": alt["decision"],
         "decision_zh": alt["decision_zh"],
+        "decision_en": alt["decision_en"],
         "affected_nodes": sum(1 for _ in g.successors(labeled[0])),
     }
 

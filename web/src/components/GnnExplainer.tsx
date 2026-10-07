@@ -1,3 +1,5 @@
+import { useLang } from '../i18n'
+
 /**
  * 給非技術讀者的圖神經網路說明：同一筆交易，傳統模型只看它自己，圖神經網路連它的上下游一起看。
  * 純示意圖，不代表任何真實交易。
@@ -8,6 +10,7 @@ function TxNode({ x, y, r = 14, tone }: { x: number; y: number; r?: number; tone
 }
 
 function Neighborhood({ active }: { active: boolean }) {
+  const { t } = useLang()
   const inbound = [
     [60, 60],
     [45, 130],
@@ -43,12 +46,12 @@ function Neighborhood({ active }: { active: boolean }) {
       <TxNode x={180} y={130} r={24} tone="focus" />
       {!active && <rect x="140" y="90" width="80" height="80" fill="none" stroke="var(--color-text)" strokeWidth="2" strokeDasharray="6 5" />}
       <text x="180" y="176" textAnchor="middle" className="fill-text text-[14px] font-bold">
-        受審交易
+        {t('受審交易', 'Transaction under review')}
       </text>
       {active && (
         <>
-          <text x="58" y="245" textAnchor="middle" className="fill-muted text-[13px]">錢從哪來</text>
-          <text x="330" y="245" textAnchor="middle" className="fill-muted text-[13px]">錢往哪去（含兩層外）</text>
+          <text x="58" y="245" textAnchor="middle" className="fill-muted text-[13px]">{t('錢從哪來', 'Money in')}</text>
+          <text x="330" y="245" textAnchor="middle" className="fill-muted text-[13px]">{t('錢往哪去（含兩層外）', 'Money out (2 hops)')}</text>
         </>
       )}
     </svg>
@@ -56,31 +59,47 @@ function Neighborhood({ active }: { active: boolean }) {
 }
 
 export function GnnExplainer() {
+  const { t } = useLang()
   return (
     <div>
       <p className="max-w-3xl leading-relaxed">
-        打個比方：審核一筆匯款時，<strong>只看金額與時間</strong>是傳統做法；
-        <strong>同時查這筆錢從哪些帳戶來、接下來流向誰</strong>，就是圖神經網路的思路。
+        {t(
+          <>
+            打個比方：審核一筆匯款時，<strong>只看金額與時間</strong>是傳統做法；
+            <strong>同時查這筆錢從哪些帳戶來、接下來流向誰</strong>，就是圖神經網路的思路。
+          </>,
+          <>
+            An analogy: when reviewing a transfer, <strong>looking only at its amount and time</strong> is the traditional
+            approach; <strong>also checking which accounts the money came from and where it goes next</strong> is how a graph
+            neural network thinks.
+          </>,
+        )}
       </p>
       <div className="mt-8 grid gap-8 md:grid-cols-2">
         <figure className="border border-line bg-surface-2 p-5">
-          <div className="kicker">傳統模型（如 Random Forest）</div>
-          <div className="mt-1 text-xl font-black">只看這筆交易本身</div>
+          <div className="kicker">{t('傳統模型（如 Random Forest）', 'Traditional model (e.g. Random Forest)')}</div>
+          <div className="mt-1 text-xl font-black">{t('只看這筆交易本身', 'Looks only at the transaction itself')}</div>
           <div className="mt-4">
             <Neighborhood active={false} />
           </div>
           <figcaption className="mt-3 text-sm leading-relaxed text-muted">
-            輸入 165 項交易特徵（金額、手續費、輸入輸出筆數、時間等），判斷這筆是否可疑。周邊交易只以預先算好的彙總數字間接納入。
+            {t(
+              '輸入 165 項交易特徵（金額、手續費、輸入輸出筆數、時間等），判斷這筆是否可疑。周邊交易只以預先算好的彙總數字間接納入。',
+              'Takes 165 transaction features (amount, fee, input/output counts, time and so on) and judges whether this one is suspicious. Neighbouring transactions enter only indirectly, as pre-computed aggregates.',
+            )}
           </figcaption>
         </figure>
         <figure className="border-2 border-model bg-surface-2 p-5">
-          <div className="kicker">圖神經網路（GNN）</div>
-          <div className="mt-1 text-xl font-black" style={{ color: 'var(--color-model)' }}>連同上下游一起看</div>
+          <div className="kicker">{t('圖神經網路（GNN）', 'Graph neural network (GNN)')}</div>
+          <div className="mt-1 text-xl font-black" style={{ color: 'var(--color-model)' }}>{t('連同上下游一起看', 'Looks upstream and downstream too')}</div>
           <div className="mt-4">
             <Neighborhood active />
           </div>
           <figcaption className="mt-3 text-sm leading-relaxed text-muted">
-            模型逐層彙整相連交易的特徵：第一層看直接往來，第二層看到兩步之外。本研究採用的「反向訊息傳遞」把「錢從哪來」與「錢往哪去」分開計算，更貼近洗錢的方向性。
+            {t(
+              '模型逐層彙整相連交易的特徵：第一層看直接往來，第二層看到兩步之外。本研究採用的「反向訊息傳遞」把「錢從哪來」與「錢往哪去」分開計算，更貼近洗錢的方向性。',
+              'The model aggregates features of connected transactions layer by layer: the first layer sees direct counterparties, the second sees two steps out. The reverse message passing used here computes "where money came from" and "where it goes" separately, which better matches the directional nature of laundering.',
+            )}
           </figcaption>
         </figure>
       </div>

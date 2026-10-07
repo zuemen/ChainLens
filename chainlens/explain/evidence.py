@@ -16,6 +16,7 @@ from chainlens.sna.metrics import compute_sna_features
 from chainlens.sna.motifs import MotifHit, detect_all
 
 _LABEL_ZH = {"high": "高風險", "medium": "中風險", "low": "低風險"}
+_LABEL_EN = {"high": "high risk", "medium": "medium risk", "low": "low risk"}
 
 # SNA 指標欄位名 → 法遵人員讀得懂的說法（敘事與 STR 草稿用）
 _METRIC_ZH = {
@@ -24,6 +25,13 @@ _METRIC_ZH = {
     "pagerank": "資金匯集影響力（PageRank）",
     "kcore": "核心度（k-core）",
     "betweenness": "居間轉手程度（中介中心性）",
+}
+_METRIC_EN = {
+    "in_degree": "number of incoming sources",
+    "out_degree": "number of outgoing counterparties",
+    "pagerank": "fund-collection influence (PageRank)",
+    "kcore": "coreness (k-core)",
+    "betweenness": "pass-through role (betweenness centrality)",
 }
 
 PipelineResult = tuple[pd.DataFrame, dict[Any, int], dict[int, float], list[MotifHit]]
@@ -84,28 +92,42 @@ def generate_evidence(
 
     # 這是節點「自身」的結構分數；出金審查的綜合分數另由 screening 融合關聯分數得出，兩者不可混稱
     narrative: list[str] = [f"節點 {node} 自身結構風險評分 {score:.2f}（{_LABEL_ZH[label]}）。"]
+    narrative_en: list[str] = [
+        f"Node {node} has its own structural risk score of {score:.2f} ({_LABEL_EN[label]})."
+    ]
     if node_hits:
         narrative.append("命中詐騙圖樣：" + "；".join(h.description_zh for h in node_hits))
+        narrative_en.append(
+            " Fraud patterns matched: " + " ".join(h.description_en for h in node_hits)
+        )
     top = top_features[0]
     if percentiles[top] >= 90:
-        level = "顯著異常"
+        level, level_en = "顯著異常", "markedly anomalous"
     elif percentiles[top] >= 70:
-        level = "偏高"
+        level, level_en = "偏高", "elevated"
     else:
-        level = "未見明顯異常"
+        level, level_en = "未見明顯異常", "not notably anomalous"
     narrative.append(
         f"其{_METRIC_ZH.get(top, top)}位於全圖第 {percentiles[top]:.0f} 百分位，結構位置{level}。"
+    )
+    narrative_en.append(
+        f" Its {_METRIC_EN.get(top, top)} is higher than {percentiles[top]:.0f}% of nodes in "
+        f"the graph — structurally {level_en}."
     )
     if g.graph.get("proxy_labels"):
         # 無標註圖的社群風險來自圖樣命中（代理標註），不得寫成「已知非法」
         if risk_ratio > 0:
             narrative.append(f"所屬資金社群 #{comm} 內含圖樣命中節點。")
+            narrative_en.append(f" Its fund community #{comm} contains pattern-matched nodes.")
         else:
             narrative.append(f"所屬資金社群 #{comm} 內無圖樣命中節點。")
+            narrative_en.append(f" Its fund community #{comm} has no pattern-matched nodes.")
     else:
         narrative.append(f"所屬社群 #{comm} 已知非法佔比 {risk_ratio:.0%}。")
+        narrative_en.append(f" Community #{comm} is {risk_ratio:.0%} known-illicit.")
     if model_score is not None:
         narrative.append(f"GNN 模型判定非法機率 {model_score:.2f}。")
+        narrative_en.append(f" GNN model probability of illicit: {model_score:.2f}.")
 
     return {
         "score": round(score, 4),
@@ -115,4 +137,5 @@ def generate_evidence(
         "community_risk_ratio": round(risk_ratio, 4),
         "motif_hits": [asdict(h) for h in node_hits],
         "narrative_zh": "".join(narrative),
+        "narrative_en": "".join(narrative_en),
     }

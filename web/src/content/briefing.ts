@@ -6,6 +6,8 @@
 
 export interface Source {
   label: string
+  /** 英文介面用的來源名稱；缺省時沿用 label */
+  label_en?: string
   url: string
 }
 
@@ -23,6 +25,7 @@ export const KEY_FACTS: KeyFact[] = [
     label: '2025 年全臺詐騙財損（受理 16.2 萬件）',
     source: {
       label: '165 打詐儀錶板，台視 2026-01-19 報導',
+      label_en: '165 Anti-Fraud Dashboard, via TTV News 2026-01-19',
       url: 'https://tw.news.yahoo.com/2025%E5%B9%B4%E5%85%A8%E5%8F%B0%E8%A9%90%E9%A8%99%E8%B2%A1%E6%90%8D%E8%BF%91900%E5%84%84-165%E6%89%93%E8%A9%90%E5%84%80%E9%8C%B6%E6%9D%BF%E6%8F%AD%E6%9C%80%E5%B8%B8%E8%A6%8B%E6%89%8B%E6%B3%95-092531701.html',
     },
   },
@@ -38,6 +41,7 @@ export const KEY_FACTS: KeyFact[] = [
     label: '2023–2025 年金管會累計金檢的 VASP，已對 11 家開罰；缺失包括「未深入評估被通報客戶之間的交易行為與提幣資金流向關聯性」',
     source: {
       label: '資安人 2025-11-25',
+      label_en: 'Information Security (資安人) 2025-11-25',
       url: 'https://www.informationsecurity.com.tw/article/article_detail.aspx?aid=12488',
     },
   },
@@ -149,6 +153,11 @@ export interface PainPoint {
   solution: string
   /** 在網站哪裡可以親眼看到 */
   seeIt: string
+  /** 英文版（英文介面用） */
+  pain_en: string
+  evidence_en: string
+  solution_en: string
+  seeIt_en: string
   /** 對應的出金審查情境編號（點痛點直接跳 /screening?case=N&auto=1） */
   scenario: number
 }
@@ -161,33 +170,49 @@ export const PAIN_POINTS: PainPoint[] = [
   {
     pain: '黑名單永遠慢一步',
     evidence: '現行聯防凍結靠的是「已被通報」的帳戶；詐騙地址用過即丟，通報時錢已經轉走。',
-    source: { label: 'TVBS 2025-01-22（刑事局與交易所聯防）', url: 'https://news.tvbs.com.tw/local/2758583' },
+    source: { label: 'TVBS 2025-01-22（刑事局與交易所聯防）', label_en: 'TVBS 2025-01-22 (police–exchange joint defence)', url: 'https://news.tvbs.com.tw/local/2758583' },
     solution: '不靠名單：把 4 類洗錢手法寫成圖樣主動掃描，再從出金地址往上游追溯。地址從未被通報也攔得到。',
     seeIt: '出金審查・情境一',
+    pain_en: 'Blacklists are always a step behind',
+    evidence_en: "Today's joint freezes rely on accounts that have already been reported. Fraud addresses are used once and discarded — by the time they are reported, the money has moved on.",
+    solution_en: 'No list required: four laundering techniques are encoded as graph patterns and scanned proactively, then traced upstream from the withdrawal address. Even an address nobody has reported gets caught.',
+    seeIt_en: 'Screening · Scenario 1',
     scenario: 1,
   },
   {
     pain: '金檢點名：沒有評估提幣資金流向',
     evidence: '金管會 2023–2025 年金檢 17 家 VASP、已對 11 家開罰，缺失包括「未深入評估被通報客戶之間的交易行為與提幣資金流向關聯性」。',
-    source: { label: '資安人 2025-11-25', url: 'https://www.informationsecurity.com.tw/article/article_detail.aspx?aid=12488' },
+    source: { label: '資安人 2025-11-25', label_en: 'Information Security (資安人) 2025-11-25', url: 'https://www.informationsecurity.com.tw/article/article_detail.aspx?aid=12488' },
     solution: '在出金當下自動追溯最多 4 層上游，約 1 秒回傳完整資金路徑與關聯階數，留下「評估過」的證據。',
     seeIt: '出金審查・情境二（3 階追溯，關聯 0.36）',
+    pain_en: 'Examiners flagged it: withdrawal fund flows were not assessed',
+    evidence_en: "Taiwan's Financial Supervisory Commission examined 17 VASPs in 2023–2025 and fined 11. Deficiencies included \"failing to assess in depth how reported customers' transactions relate to where withdrawn funds go\" (translated).",
+    solution_en: 'At the moment of withdrawal it traces up to 4 hops upstream and returns the full fund path and hop distance in about a second — leaving evidence that the assessment was done.',
+    seeIt_en: 'Screening · Scenario 2 (3-hop trace, association 0.36)',
     scenario: 2,
   },
   {
     pain: '監控門檻是固定金額',
     evidence: '同一份金檢指出「多數業者設定的可疑交易態樣監控金額門檻均為固定數值」。',
-    source: { label: '資安人 2025-11-25', url: 'https://www.informationsecurity.com.tw/article/article_detail.aspx?aid=12488' },
+    source: { label: '資安人 2025-11-25', label_en: 'Information Security (資安人) 2025-11-25', url: 'https://www.informationsecurity.com.tw/article/article_detail.aspx?aid=12488' },
     solution: '風險分數看資金結構、不看金額大小；並分暫緩出金／加強審查／放行三級，而不是一刀切。',
     seeIt: '出金審查・情境六（拆單，9,000 USDT 也攔）',
+    pain_en: 'Monitoring thresholds are fixed amounts',
+    evidence_en: 'The same examination found that "most providers set fixed monetary thresholds for monitoring suspicious-transaction patterns" (translated).',
+    solution_en: 'Risk scores look at fund structure, not transaction size, and grade the response — hold, enhanced review or release — instead of a single cut-off.',
+    seeIt_en: 'Screening · Scenario 6 (split deposits — even 9,000 USDT is held)',
     scenario: 6,
   },
   {
     pain: '可疑交易申報量一年倍增',
     evidence: '調查局 113 年洗錢防制工作年報：虛擬通貨業可疑交易報告 918 件，前一年 447 件。',
-    source: { label: '加密城市 2025-11-04（引調查局年報）', url: 'https://www.cryptocity.tw/news/suspected-money-laundering-hong-company-report' },
+    source: { label: '加密城市 2025-11-04（引調查局年報）', label_en: 'CryptoCity 2025-11-04 (citing the Investigation Bureau report)', url: 'https://www.cryptocity.tw/news/suspected-money-laundering-hong-company-report' },
     solution: '自動產出可疑交易申報（STR）草稿：可疑事由、逐筆金額與時間、完整路徑，法遵人員審閱修訂即可。',
     seeIt: '出金審查・情境三（STR 草稿可下載）',
+    pain_en: 'Suspicious transaction reports doubled in a year',
+    evidence_en: "Taiwan's Investigation Bureau AML annual report for 2024: 918 suspicious transaction reports from virtual-asset businesses, up from 447 the year before.",
+    solution_en: "Auto-drafts the suspicious transaction report (STR): grounds for suspicion, every hop's amount and time, and the full path. Compliance staff only review and edit.",
+    seeIt_en: 'Screening · Scenario 3 (downloadable STR draft)',
     scenario: 3,
   },
   {
@@ -196,30 +221,46 @@ export const PAIN_POINTS: PainPoint[] = [
     source: { label: 'FATF Targeted Report on Stablecoins and Unhosted Wallets', url: 'https://www.fatf-gafi.org/en/publications/Virtualassets/targeted-report-stablecoins-unhosted-wallets.html' },
     solution: '直接分析 TRON 鏈上的 USDT 金流，不需要對方業者提供任何資訊；與旅行規則互補。',
     seeIt: '出金審查・情境五（鏈上 USDT 金流直接判讀）',
+    pain_en: 'Stablecoins are the main carrier of illicit flows',
+    evidence_en: 'A 2026 FATF report, citing Chainalysis: stablecoins made up 84% of illicit virtual-asset transaction volume in 2025, often through unhosted wallets — beyond the reach of the Travel Rule.',
+    solution_en: 'Reads USDT flows on TRON directly, with nothing required from the counterparty provider — complementary to the Travel Rule.',
+    seeIt_en: 'Screening · Scenario 5 (reading on-chain USDT flows directly)',
     scenario: 5,
   },
   {
     pain: 'AI 黑箱難以向監理與司法說明',
     evidence: '金管會《金融業運用人工智慧（AI）指引》核心原則五：落實透明性與可解釋性。',
-    source: { label: '證交所市場觀點（金管會 AI 指引六大原則）', url: 'https://www.twse.com.tw/market_insights/zh/detail/8a8216d6904d181101905e34532c006e' },
+    source: { label: '證交所市場觀點（金管會 AI 指引六大原則）', label_en: "TWSE Market Insights (the FSC's six AI principles)", url: 'https://www.twse.com.tw/market_insights/zh/detail/8a8216d6904d181101905e34532c006e' },
     solution: '每個判定都附命中的圖樣、關聯階數與資金路徑；規則與程式碼全部公開，最終決定權在法遵人員。',
     seeIt: '出金審查・情境四（被害人為何放行，理由列得出來）',
+    pain_en: 'Black-box AI is hard to explain to regulators and courts',
+    evidence_en: "Principle 5 of Taiwan's FSC Guidelines for the Use of AI in the Financial Industry: ensure transparency and explainability.",
+    solution_en: 'Every decision comes with the matched patterns, hop distance and fund path. Rules and code are fully open, and the final call stays with compliance staff.',
+    seeIt_en: 'Screening · Scenario 4 (why a victim is released — the reasons are listed)',
     scenario: 4,
   },
   {
     pain: '手法一變，寫死的規則就失效',
     evidence: '劇本情境七：中繼地址一進一出、金額原封不動往下傳，四類規則圖樣一個都沒命中，規則引擎綜合 0.19 判放行。Elliptic 第 43 期實驗也顯示，單押任何一個模型，手法一變就同時失效。',
-    source: { label: '本專案劇本定義 chainlens/data/scenario.py（情境七）', url: 'https://github.com/zuemen/ChainLens/blob/main/chainlens/data/scenario.py' },
+    source: { label: '本專案劇本定義 chainlens/data/scenario.py（情境七）', label_en: 'Project scenario definition chainlens/data/scenario.py (scenario 7)', url: 'https://github.com/zuemen/ChainLens/blob/main/chainlens/data/scenario.py' },
     solution: '第二引擎：圖神經網路模型（GNN）讀 13 個結構特徵，判 0.98，把「放行」升為「加強審查」。模型只能升不能降，人做最後決定。',
     seeIt: '出金審查・情境七（規則 0.19 → 模型 0.98）',
+    pain_en: 'Change the technique and hard-coded rules stop working',
+    evidence_en: 'Scenario 7: a relay address takes funds in and passes them straight on, amount untouched. None of the four rule patterns match, and the rule engine scores 0.19 — release. The Elliptic period-43 experiment shows the same thing: bet on any single model and a change in technique breaks it.',
+    solution_en: 'Second engine: a graph neural network (GNN) reads 13 structural features, scores 0.98 and raises "release" to "enhanced review". The model can only escalate, never downgrade; a person makes the final call.',
+    seeIt_en: 'Screening · Scenario 7 (rules 0.19 → model 0.98)',
     scenario: 7,
   },
   {
     pain: '誤報拖垮人工審查量，也趕跑正常用戶',
     evidence: '本專案反事實實驗：拿掉實體標註後，情境八的交易所熱錢包批次出金被當成快速分散，規則綜合 1.00 暫緩出金，同一批 30 名用戶全部連坐。',
-    source: { label: '本專案反事實實作 chainlens/api/main.py', url: 'https://github.com/zuemen/ChainLens/blob/main/chainlens/api/main.py' },
+    source: { label: '本專案反事實實作 chainlens/api/main.py', label_en: 'Project counterfactual implementation chainlens/api/main.py', url: 'https://github.com/zuemen/ChainLens/blob/main/chainlens/api/main.py' },
     solution: '已標註實體（交易所熱錢包）的批次出金不計入洗錢圖樣；規則 0.02、模型 0.10，放行。畫面同時顯示反事實，誤報有多嚴重看得見。',
     seeIt: '出金審查・情境八（反事實橫幅）',
+    pain_en: 'False positives swamp manual review and drive away legitimate users',
+    evidence_en: "Our counterfactual experiment: with the entity label removed, the exchange hot wallet's batch payout in scenario 8 looks like a rapid fan-out. The rules score 1.00 and hold the withdrawal, and all 30 users in the batch are penalised.",
+    solution_en: 'Batch payouts from a labelled entity (an exchange hot wallet) are excluded from laundering patterns: rules 0.02, model 0.10, release. The counterfactual is shown on screen, so the cost of a false positive is visible.',
+    seeIt_en: 'Screening · Scenario 8 (counterfactual banner)',
     scenario: 8,
   },
 ]

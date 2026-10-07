@@ -3,6 +3,7 @@ import dagre from 'cytoscape-dagre'
 import type { DagreLayoutOptions } from 'cytoscape-dagre'
 import { useEffect, useRef } from 'react'
 import type { GraphPayload } from '../api/types'
+import { useLang } from '../i18n'
 import { type ColorScheme, GRAPH_COLOR, toElements } from './elements'
 
 cytoscape.use(dagre)
@@ -114,27 +115,28 @@ export function GraphView({
 
 /** 圖例：圖上每一種顏色都要有說明，不能只靠標題提兩種 */
 function GraphLegend({ scheme, hasPath, hasFocus }: { scheme: ColorScheme; hasPath: boolean; hasFocus: boolean }) {
+  const { t } = useLang()
   const items =
     scheme === 'role'
       ? [
-          { color: GRAPH_COLOR.risk, label: '風險節點（命中圖樣或高分）' },
-          { color: GRAPH_COLOR.victim, label: '被害人' },
-          { color: GRAPH_COLOR.normal, label: '正常交易' },
-          { color: GRAPH_COLOR.other, label: '其他出金地址' },
-          { color: GRAPH_COLOR.entity, label: '已標註實體（描邊）' },
-          { color: GRAPH_COLOR.minor, label: '剝離的小額地址' },
+          { color: GRAPH_COLOR.risk, label: t('風險節點（命中圖樣或高分）', 'Risk node (pattern match or high score)') },
+          { color: GRAPH_COLOR.victim, label: t('被害人', 'Victim') },
+          { color: GRAPH_COLOR.normal, label: t('正常交易', 'Normal transaction') },
+          { color: GRAPH_COLOR.other, label: t('其他出金地址', 'Other cash-out address') },
+          { color: GRAPH_COLOR.entity, label: t('已標註實體（描邊）', 'Labelled entity (outline)') },
+          { color: GRAPH_COLOR.minor, label: t('剝離的小額地址', 'Peeled-off small address') },
         ]
       : [
-          { color: GRAPH_COLOR.risk, label: '高風險 ≥0.7' },
-          { color: GRAPH_COLOR.victim, label: '中風險 ≥0.4' },
-          { color: GRAPH_COLOR.normal, label: '低風險' },
+          { color: GRAPH_COLOR.risk, label: t('高風險 ≥0.7', 'High risk ≥0.7') },
+          { color: GRAPH_COLOR.victim, label: t('中風險 ≥0.4', 'Medium risk ≥0.4') },
+          { color: GRAPH_COLOR.normal, label: t('低風險', 'Low risk') },
         ]
   return (
     <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
       {hasPath && (
         <li className="flex items-center gap-2">
           <span aria-hidden="true" className="inline-block h-1 w-7" style={{ backgroundColor: GRAPH_COLOR.risk }} />
-          風險資金路徑
+          {t('風險資金路徑', 'Risky fund path')}
         </li>
       )}
       {hasFocus && (
@@ -144,7 +146,7 @@ function GraphLegend({ scheme, hasPath, hasFocus }: { scheme: ColorScheme; hasPa
             className="inline-block h-3.5 w-3.5 rounded-full border-[3px]"
             style={{ backgroundColor: GRAPH_COLOR.focus, borderColor: GRAPH_COLOR.risk }}
           />
-          審查目標
+          {t('審查目標', 'Target')}
         </li>
       )}
       {items.map((item) => (
@@ -153,7 +155,7 @@ function GraphLegend({ scheme, hasPath, hasFocus }: { scheme: ColorScheme; hasPa
           {item.label}
         </li>
       ))}
-      <li className="text-muted">只標示關鍵節點名稱；滾輪縮放、拖曳平移</li>
+      <li className="text-muted">{t('只標示關鍵節點名稱；滾輪縮放、拖曳平移', 'Only key nodes are labelled; scroll to zoom, drag to pan')}</li>
     </ul>
   )
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import raw from '../api/research-eval.json'
+import { useLang } from '../i18n'
 
 interface StepPoint {
   t: number
@@ -38,6 +39,7 @@ export function StepF1Chart() {
   const models = RESEARCH_EVAL.models
   const steps = models[0].per_step.map((point) => point.t)
   const [hover, setHover] = useState<number | null>(null)
+  const { t } = useLang()
 
   const plotW = W - M.left - M.right
   const plotH = H - M.top - M.bottom
@@ -62,17 +64,17 @@ export function StepF1Chart() {
               <line x1="0" y1="5" x2="28" y2="5" stroke={SERIES_COLOR[model.key]} strokeWidth="3" strokeDasharray={SERIES_DASH[model.key]} />
             </svg>
             {model.label}
-            <span className="tabular text-muted">整體 F1 {model.f1.toFixed(3)}</span>
+            <span className="tabular text-muted">{t('整體 F1', 'overall F1')} {model.f1.toFixed(3)}</span>
           </li>
         ))}
       </ul>
 
       <div className="relative">
-        <svg viewBox={`0 0 ${W} ${H + BAR_H + 24}`} className="block h-auto w-full" role="img" aria-label="Elliptic 測試期逐時間段 F1 折線圖；第 43 期起三個模型的 F1 都降到接近 0">
+        <svg viewBox={`0 0 ${W} ${H + BAR_H + 24}`} className="block h-auto w-full" role="img" aria-label={t('Elliptic 測試期逐時間段 F1 折線圖；第 43 期起三個模型的 F1 都降到接近 0', 'Line chart of per-period F1 on the Elliptic test set; from period 43 all three models drop to near 0')}>
           {/* 第 43 期起的區段 */}
           <rect x={x(SHIFT_STEP) - plotW / 28} y={M.top} width={x(steps[steps.length - 1]) - x(SHIFT_STEP) + plotW / 28} height={plotH} className="fill-surface-2" />
-          <text x={x(SHIFT_STEP) - plotW / 28 + 8} y={M.top + 18} className="fill-text text-[13px] font-bold">第 43 期起：暗網市場關閉</text>
-          <text x={x(SHIFT_STEP) - plotW / 28 + 8} y={M.top + 36} className="fill-muted text-[12px]">犯罪手法改變，三個模型同時失效</text>
+          <text x={x(SHIFT_STEP) - plotW / 28 + 8} y={M.top + 18} className="fill-text text-[13px] font-bold">{t('第 43 期起：暗網市場關閉', 'From period 43: dark-web market shuts')}</text>
+          <text x={x(SHIFT_STEP) - plotW / 28 + 8} y={M.top + 36} className="fill-muted text-[12px]">{t('犯罪手法改變，三個模型同時失效', 'Techniques change; all three models fail')}</text>
 
           {/* 格線與軸 */}
           {[0, 0.25, 0.5, 0.75, 1].map((tick) => (
@@ -84,7 +86,7 @@ export function StepF1Chart() {
           {steps.map((t) => (
             <text key={t} x={x(t)} y={H - M.bottom + 18} textAnchor="middle" className="tabular fill-muted text-[12px]">{t}</text>
           ))}
-          <text x={M.left} y={M.top - 6} className="fill-muted text-[12px]">F1（illicit）</text>
+          <text x={M.left} y={M.top - 6} className="fill-muted text-[12px]">{t('F1（illicit）', 'F1 (illicit)')}</text>
 
           {/* 折線 */}
           {models.map((model) => (
@@ -100,7 +102,7 @@ export function StepF1Chart() {
           ))}
 
           {/* 下方：每期非法交易筆數（另一張圖，共用 x 軸，不做雙 y 軸） */}
-          <text x={M.left} y={H + 6} className="fill-muted text-[12px]">每期非法交易筆數（測試集）</text>
+          <text x={M.left} y={H + 6} className="fill-muted text-[12px]">{t('每期非法交易筆數（測試集）', 'Illicit transactions per period (test set)')}</text>
           {models[0].per_step.map((point) => {
             const h = (point.illicit / maxIllicit) * (BAR_H - 20)
             return (
@@ -138,7 +140,7 @@ export function StepF1Chart() {
             className="pointer-events-none absolute top-2 border border-line bg-surface-2 px-3 py-2 text-sm"
             style={{ left: `${(x(steps[hoverIndex]) / W) * 100}%`, transform: hoverIndex > steps.length / 2 ? 'translateX(-105%)' : 'translateX(5%)' }}
           >
-            <div className="font-bold">第 {steps[hoverIndex]} 期</div>
+            <div className="font-bold">{t(`第 ${steps[hoverIndex]} 期`, `Period ${steps[hoverIndex]}`)}</div>
             {models.map((model) => (
               <div key={model.key} className="flex justify-between gap-6">
                 <span>{model.label}</span>
@@ -146,7 +148,7 @@ export function StepF1Chart() {
               </div>
             ))}
             <div className="mt-1 flex justify-between gap-6 text-muted">
-              <span>非法交易筆數</span>
+              <span>{t('非法交易筆數', 'Illicit transactions')}</span>
               <span className="tabular">{models[0].per_step[hoverIndex].illicit}</span>
             </div>
           </div>
@@ -154,16 +156,16 @@ export function StepF1Chart() {
       </div>
 
       <details className="mt-4 text-sm">
-        <summary className="cursor-pointer text-muted">以表格檢視逐期數值</summary>
+        <summary className="cursor-pointer text-muted">{t('以表格檢視逐期數值', 'View per-period values as a table')}</summary>
         <div className="mt-3 overflow-x-auto">
           <table className="tabular w-full text-left">
             <thead className="text-muted">
               <tr>
-                <th scope="col" className="py-1.5 pr-4 font-normal">期別</th>
+                <th scope="col" className="py-1.5 pr-4 font-normal">{t('期別', 'Period')}</th>
                 {models.map((model) => (
                   <th key={model.key} scope="col" className="py-1.5 pr-4 font-normal">{model.label}</th>
                 ))}
-                <th scope="col" className="py-1.5 pr-4 font-normal">非法筆數</th>
+                <th scope="col" className="py-1.5 pr-4 font-normal">{t('非法筆數', 'Illicit')}</th>
               </tr>
             </thead>
             <tbody>
