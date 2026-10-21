@@ -4,11 +4,14 @@
 
 **線上 Demo：<https://chain-lens-beta.vercel.app>**（出金審查情境、金流圖譜工作台、研究成果；API 文件在 [`/docs`](https://chain-lens-beta.vercel.app/docs)）。Demo 情境為合成劇本資料。
 
+**Demo 影片**（約 2 分鐘，動畫解說＋示範站真實錄影片段，情境皆為合成資料）：<https://zuemen.net/projects#chainlens>
+
 ChainLens 以社會網路分析（SNA）與洗錢圖樣偵測虛擬資產詐騙金流，服務對象為台灣 VASP 業者的法遵篩查。核心賣點是**可解釋性**：每個風險判定都附帶結構證據——中心性異常、社群歸屬、資金路徑圖樣——而非黑箱分數。
 
-**兩條線分清楚：**
-- **即時出金審查**（API `/screen`、網站、Streamlit）＝洗錢圖樣規則＋SNA 結構分數＋資金路徑風險傳導，不需要標註資料。
-- **圖神經網路（GCN／GraphSAGE）**＝在 Elliptic 公開資料集上的**離線研究基準**，目前**尚未接入即時審查**：劇本圖與 TRON 即時圖沒有 Elliptic 的 165 維交易特徵，且 serverless 部署無法載入 PyTorch。`generate_evidence()` 保留了 `model_score` 介面，待在地標註資料集建立後接入。
+**三條線分清楚：**
+- **即時出金審查**（API `/screen`、網站、Streamlit）＝**雙引擎**：規則引擎（洗錢圖樣規則＋SNA 結構分數＋資金路徑風險傳導）＋ **GNN 模型（GraphSAGE＋reverse message passing，純 numpy 推論，可跑在 serverless）**。GNN 判定 ≥ 0.70 且規則放行時，只能把「放行」升為「加強審查」，不能單獨暫緩、也不能降級；暫緩必須有可稽核的證據鏈與 STR 草稿，最後由法遵人員決定（`chainlens/explain/screening.py` 的 `MODEL_ESCALATE_THRESHOLD`）。
+- **GNN 即時模型的訓練資料是隨機化的合成劇本圖**（`chainlens/models/train_structural.py`），只看任何交易圖都算得出的結構特徵、不看地址名稱；**尚未在真實標註資料上驗證**。
+- **Elliptic GCN／GraphSAGE**＝在 Elliptic 公開資料集上的**離線研究基準**（165 維交易特徵、PyTorch Geometric），與即時模型分開；下方「模型指標」即此基準。
 
 ## 系統架構
 
@@ -24,11 +27,13 @@ flowchart LR
         C --> F[詐騙圖樣規則<br/>fan-in / fan-out / peeling chain]
     end
     subgraph 模型層
-        D --> G[GCN / GraphSAGE<br/>PyTorch Geometric]
+        C --> S[GNN 模型（第二引擎）<br/>結構特徵 GraphSAGE・numpy 推論]
+        D --> G[Elliptic 離線基準<br/>GCN / GraphSAGE・PyTorch Geometric]
     end
     subgraph 解釋與服務層
         D & E & F & G --> H[風險證據產生器<br/>結構證據 + 中文調查敘事]
         H --> K[出金審查引擎<br/>關聯追溯 + 風險融合 + STR 草稿]
+        S -->|只能升為加強審查| K
         H --> I[FastAPI POST /score]
         H --> J[Streamlit 工作台<br/>出金審查 Demo + PyVis 互動圖譜]
         K --> J
@@ -165,8 +170,8 @@ vercel --prod          # 正式部署 → https://<你的專案>.vercel.app
 ```
 
 - 於 Vercel 專案 Settings → Environment Variables 填 `TRONGRID_API_KEY`（選配）、`CHAINLENS_API_KEY`（選配，設定後 `/score` 需帶 `X-API-Key`）。
-- 端點：`/`（導向 `/docs`）、`/health`、`POST /score`、`/docs`。本服務為純 JSON API，無前端頁面——直接開網址會落到 Swagger 互動文件。試打：`curl -X POST https://<你的專案>.vercel.app/score -H "Content-Type: application/json" -d '{"address":"TScamCollector001","mode":"example"}'`
-- **限制**：Vercel 只跑得了 JSON API。elliptic 訓練模式（載 203k 圖）與 **Streamlit 視覺工作台**（含 50 萬 USDT 出金審查 Demo）需常駐/重依賴，無法上 serverless。
+- 端點：`/` 是 Demo 網站（`public/`，由 `npm --prefix web run build:site` 產生，見下方「Demo 網站」；若部署時沒有 `public/` 才導向 `/docs`），`POST /screen`、`POST /score`、`/health`、`/docs` 為 API。試打：`curl -X POST https://<你的專案>.vercel.app/score -H "Content-Type: application/json" -d '{"address":"TScamCollector001","mode":"example"}'`
+- **限制**：Vercel 跑的是 API＋Demo 網站（含雙引擎出金審查；GNN 以 numpy 推論，不需 torch）。elliptic 訓練模式（載 203k 圖）與 **Streamlit 視覺工作台**需常駐/重依賴，無法上 serverless。
 - **視覺 Demo 最簡單的免費去處**：[Streamlit Community Cloud](https://share.streamlit.io)——連 GitHub、主檔選 `chainlens/app/workbench.py`、免 Docker 一鍵上線。
 
 ### Demo 網站（web/）
@@ -234,6 +239,8 @@ docker run -p 8501:8000 -e PORT=8000 chainlens \
 ## 免責聲明
 
 本專案為學術研究與競賽展示用途，風險分數與調查敘事僅供參考，**不構成投資建議、法律意見或合規判定**。實際法遵決策請諮詢專業人士並遵循主管機關規範。
+
+公開 Demo 站停用 TRON 即時查詢，所有情境（含 `TOtcOut01`、`TRelay03` 等地址名）皆為合成劇本；GNN 即時模型在合成劇本圖上訓練與測試，尚未在真實標註資料上驗證。
 
 ## License
 
