@@ -235,13 +235,16 @@ def generate_str_draft(
             nearest = associations[0]
             motifs_en = ", ".join(_MOTIF_EN.get(m, m) for m in nearest.motifs)
             en_lines.append(
-                f"   The destination is {nearest.distance} hop(s) downstream of {nearest.risky_node}, "
+                f"   The destination is {nearest.distance} hop(s) downstream of "
+                f"{nearest.risky_node}, "
                 f"which matches the {motifs_en} pattern(s). The address itself is not blacklisted, "
                 "but its upstream funds follow the collect-layer-integrate laundering path "
                 "typical of fake-investment fraud."
             )
         else:
-            en_lines.append("   The destination's own structural metrics are anomalous (see below).")
+            en_lines.append(
+                "   The destination's own structural metrics are anomalous (see below)."
+            )
         en_lines += ["", "3. Fund-flow evidence chain"]
         if associations:
             for i, assoc in enumerate(associations[:5], start=1):
@@ -365,7 +368,8 @@ def screen_withdrawal(
             "narrative_en": (
                 f"Destination {target} (requested {amount_usdt:,.0f} USDT) has no on-chain "
                 "history (a fresh address or no USDT activity), so there is no structural evidence "
-                "to assess. Recommended action: release; weigh any other risk intelligence manually."
+                "to assess. Recommended action: release; "
+                "weigh any other risk intelligence manually."
             ),
             "associations": [],
             "evidence": None,
